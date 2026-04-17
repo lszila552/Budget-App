@@ -88,4 +88,7 @@ val DEFAULT_SETTINGS = listOf(
     "notif_bill_low_balance"      to "true",
     "notif_unusual_tx"            to "true",
     "notif_subscription_renewal"  to "true",
+    "vakantiegeld_smoothing"      to "true",
+    "vakantiegeld_holding_cents"  to "0",
+    "vakantiegeld_monthly_drip_cents" to "0",
 )

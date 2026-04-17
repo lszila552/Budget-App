@@ -9,7 +9,9 @@ import com.vrijgeld.data.`import`.Camt053Parser
 import com.vrijgeld.data.model.Account
 import com.vrijgeld.data.model.ImportSource
 import com.vrijgeld.data.model.Transaction
+import com.vrijgeld.data.model.Category
 import com.vrijgeld.data.repository.AccountRepository
+import com.vrijgeld.data.repository.BudgetRepository
 import com.vrijgeld.data.repository.KEY_NOTIF_BILL_LOW_BALANCE
 import com.vrijgeld.data.repository.KEY_NOTIF_SUBSCRIPTION_RENEWAL
 import com.vrijgeld.data.repository.KEY_NOTIF_UNUSUAL_TX
@@ -43,6 +45,7 @@ class SettingsViewModel @Inject constructor(
     private val settingsRepo: SettingsRepository,
     private val transactionRepo: TransactionRepository,
     private val accountRepo: AccountRepository,
+    private val budgetRepo: BudgetRepository,
     private val engine: CategorizationEngine,
 ) : ViewModel() {
 
@@ -55,7 +58,13 @@ class SettingsViewModel @Inject constructor(
     private val _notifPrefs = MutableStateFlow(NotifPrefs())
     val notifPrefs = _notifPrefs.asStateFlow()
 
+    private val _categories = MutableStateFlow<List<Category>>(emptyList())
+    val categories = _categories.asStateFlow()
+
     init {
+        viewModelScope.launch {
+            _categories.value = budgetRepo.getExpenseCategoriesOnce()
+        }
         viewModelScope.launch {
             _notifPrefs.value = NotifPrefs(
                 weeklyPace          = settingsRepo.getNotifWeeklyPace(),
@@ -98,4 +107,18 @@ class SettingsViewModel @Inject constructor(
     }
 
     fun resetImportState() { _importState.value = ImportState.Idle }
+
+    fun updateCategoryBudget(category: Category, amountText: String) = viewModelScope.launch {
+        val cents = amountText.toDoubleOrNull()?.times(100)?.toLong() ?: return@launch
+        val updated = category.copy(monthlyBudget = cents)
+        budgetRepo.updateCategory(updated)
+        _categories.value = budgetRepo.getExpenseCategoriesOnce()
+    }
+
+    fun updateSinkingFundTarget(category: Category, amountText: String) = viewModelScope.launch {
+        val cents = amountText.toDoubleOrNull()?.times(100)?.toLong() ?: return@launch
+        val updated = category.copy(sinkingFundTarget = cents)
+        budgetRepo.updateCategory(updated)
+        _categories.value = budgetRepo.getExpenseCategoriesOnce()
+    }
 }

@@ -2,15 +2,17 @@ package com.vrijgeld.ui.budget
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.vrijgeld.data.model.Category
 import com.vrijgeld.data.model.DetectedSubscription
+import com.vrijgeld.data.model.MonthlyAllocation
 import com.vrijgeld.data.repository.BudgetRepository
+import com.vrijgeld.data.repository.SettingsRepository
 import com.vrijgeld.data.repository.SubscriptionRepository
 import com.vrijgeld.data.repository.TransactionRepository
+import com.vrijgeld.domain.EnvelopeBudgetEngine
+import com.vrijgeld.domain.EnvelopeState
 import com.vrijgeld.domain.annualCost
 import com.vrijgeld.domain.monthlyCost
 import com.vrijgeld.domain.nextFutureOccurrence
-import com.vrijgeld.ui.components.CategoryRingData
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -20,15 +22,15 @@ import java.util.Calendar
 import javax.inject.Inject
 
 data class BudgetUiState(
-    val items: List<CategorySpendingItem>         = emptyList(),
+    val regularEnvelopes: List<EnvelopeState>     = emptyList(),
+    val sinkingEnvelopes: List<EnvelopeState>     = emptyList(),
+    val unallocatedIncome: Long                   = 0L,
+    val totalIncome: Long                         = 0L,
+    val overspendTarget: EnvelopeState?           = null,
     val subscriptions: List<DetectedSubscription> = emptyList(),
     val forecast: List<ForecastItem>              = emptyList(),
-    val totalMonthlySubCost: Long                 = 0L
+    val totalMonthlySubCost: Long                 = 0L,
 )
-
-data class CategorySpendingItem(val category: Category, val spent: Long) {
-    val ringData get() = CategoryRingData(category.name, category.icon, spent, category.monthlyBudget ?: 0L)
-}
 
 data class ForecastItem(
     val name: String,
@@ -44,28 +46,64 @@ class BudgetViewModel @Inject constructor(
     private val transactionRepo: TransactionRepository,
     private val budgetRepo: BudgetRepository,
     private val subscriptionRepo: SubscriptionRepository,
+    private val settingsRepo: SettingsRepository,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(BudgetUiState())
     val uiState = _uiState.asStateFlow()
 
+    private val cal       = Calendar.getInstance()
+    val yearMonth: String = "%04d-%02d".format(cal.get(Calendar.YEAR), cal.get(Calendar.MONTH) + 1)
+
     fun confirm(id: Long) = viewModelScope.launch { subscriptionRepo.confirm(id) }
     fun dismiss(id: Long) = viewModelScope.launch { subscriptionRepo.dismiss(id) }
+    fun setOverspendTarget(env: EnvelopeState?) { _uiState.value = _uiState.value.copy(overspendTarget = env) }
+
+    fun transferAllocation(sourceId: Long, targetId: Long) = viewModelScope.launch {
+        val target    = _uiState.value.overspendTarget ?: return@launch
+        val amount    = target.overspendAmount
+        val current   = budgetRepo.getAllocationsForMonthOnce(yearMonth).toMutableList()
+        val updated   = EnvelopeBudgetEngine.transferAllocation(current, sourceId, targetId, amount, yearMonth)
+        budgetRepo.upsertAllAllocations(updated)
+        _uiState.value = _uiState.value.copy(overspendTarget = null)
+    }
 
     init {
-        val cal       = Calendar.getInstance()
-        val yearMonth = "%04d-%02d".format(cal.get(Calendar.YEAR), cal.get(Calendar.MONTH) + 1)
-
         viewModelScope.launch {
             combine(
                 transactionRepo.getForMonth(yearMonth),
+                budgetRepo.getAllocationsForMonth(yearMonth),
                 budgetRepo.getExpenseCategories()
-            ) { transactions, cats ->
-                val byCategory = transactions.filter { it.amount < 0 }
+            ) { txs, allocations, cats ->
+                val spent = txs.filter { it.amount < 0 }
                     .groupBy { it.categoryId }
                     .mapValues { (_, ts) -> ts.sumOf { -it.amount } }
-                cats.map { CategorySpendingItem(it, byCategory[it.id] ?: 0L) }
-            }.collect { _uiState.value = _uiState.value.copy(items = it) }
+
+                val totalIncome = txs.filter { it.amount > 0 }.sumOf { it.amount }
+                    .let { if (it > 0L) it else settingsRepo.getMonthlyIncome() }
+                val holding     = settingsRepo.getVakantiegeldHoldingCents()
+                val effectiveIncome = totalIncome - holding
+
+                val regular  = cats.filter { !it.isSinkingFund }
+                val sinking  = cats.filter { it.isSinkingFund }
+
+                val regularEnv = EnvelopeBudgetEngine.build(regular, allocations, spent)
+                    .sortedByDescending { it.percentUsed }
+                val sinkingEnv = EnvelopeBudgetEngine.build(sinking, allocations, spent)
+
+                val unallocated = EnvelopeBudgetEngine.unallocated(effectiveIncome,
+                    regularEnv + sinkingEnv)
+
+                Triple(regularEnv to sinkingEnv, unallocated, effectiveIncome)
+            }.collect { (envelopes, unallocated, income) ->
+                val (regular, sinking) = envelopes
+                _uiState.value = _uiState.value.copy(
+                    regularEnvelopes = regular,
+                    sinkingEnvelopes = sinking,
+                    unallocatedIncome = unallocated,
+                    totalIncome       = income
+                )
+            }
         }
 
         viewModelScope.launch {
@@ -78,12 +116,12 @@ class BudgetViewModel @Inject constructor(
         }
 
         viewModelScope.launch {
-            val now     = System.currentTimeMillis()
-            val cutoff  = now + 30L * 86_400_000L
+            val now    = System.currentTimeMillis()
+            val cutoff = now + 30L * 86_400_000L
 
             combine(
                 subscriptionRepo.getAll(),
-                budgetRepo.getExpenseCategories()   // just a signal to trigger recompute
+                budgetRepo.getExpenseCategories()
             ) { subs, _ ->
                 val items = mutableListOf<ForecastItem>()
 
@@ -91,16 +129,14 @@ class BudgetViewModel @Inject constructor(
                     .forEach { items += ForecastItem(it.merchantName, it.estimatedAmount, it.nextExpectedDate) }
 
                 transactionRepo.getRecurringOnce().let { recurring ->
-                    recurring.groupBy { it.description }
-                        .values
-                        .forEach { group ->
-                            val latest = group.maxByOrNull { it.date } ?: return@forEach
-                            val freq   = latest.recurrenceFrequency ?: return@forEach
-                            val next   = nextFutureOccurrence(latest.date, freq)
-                            if (next in now..cutoff) {
-                                items += ForecastItem(latest.description, -latest.amount, next)
-                            }
+                    recurring.groupBy { it.description }.values.forEach { group ->
+                        val latest = group.maxByOrNull { it.date } ?: return@forEach
+                        val freq   = latest.recurrenceFrequency ?: return@forEach
+                        val next   = nextFutureOccurrence(latest.date, freq)
+                        if (next in now..cutoff) {
+                            items += ForecastItem(latest.description, -latest.amount, next)
                         }
+                    }
                 }
 
                 items.sortedBy { it.expectedDate }

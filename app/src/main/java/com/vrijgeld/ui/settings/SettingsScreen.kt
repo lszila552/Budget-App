@@ -5,6 +5,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -13,6 +14,8 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
@@ -35,6 +38,7 @@ fun SettingsScreen(
     val accounts    by viewModel.accounts.collectAsState()
     val importState by viewModel.importState.collectAsState()
     val notifPrefs  by viewModel.notifPrefs.collectAsState()
+    val categories  by viewModel.categories.collectAsState()
 
     var selectedAccIdx by remember { mutableIntStateOf(0) }
 
@@ -153,7 +157,86 @@ fun SettingsScreen(
                 onToggle = { viewModel.setNotifPref(KEY_NOTIF_SUBSCRIPTION_RENEWAL, it) },
                 colors   = switchColors
             )
+
+            if (categories.isNotEmpty()) {
+                HorizontalDivider()
+
+                Text("Budget Defaults", style = MaterialTheme.typography.titleLarge)
+                Text(
+                    "Default monthly amounts used when allocating income",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+
+                categories.filter { !it.isSinkingFund }.forEach { cat ->
+                    BudgetDefaultRow(
+                        icon    = cat.icon,
+                        name    = cat.name,
+                        amount  = cat.monthlyBudget,
+                        label   = "Monthly budget",
+                        onSave  = { viewModel.updateCategoryBudget(cat, it) }
+                    )
+                }
+
+                val sinkingCats = categories.filter { it.isSinkingFund }
+                if (sinkingCats.isNotEmpty()) {
+                    Text(
+                        "Sinking Fund Targets",
+                        style      = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold,
+                        modifier   = Modifier.padding(top = 8.dp)
+                    )
+                    sinkingCats.forEach { cat ->
+                        BudgetDefaultRow(
+                            icon    = cat.icon,
+                            name    = cat.name,
+                            amount  = cat.sinkingFundTarget,
+                            label   = "Target amount",
+                            onSave  = { viewModel.updateSinkingFundTarget(cat, it) }
+                        )
+                    }
+                }
+            }
         }
+    }
+}
+
+@Composable
+private fun BudgetDefaultRow(
+    icon: String,
+    name: String,
+    amount: Long?,
+    label: String,
+    onSave: (String) -> Unit
+) {
+    var text by remember(amount) {
+        mutableStateOf(if (amount != null && amount > 0) "%.2f".format(amount / 100.0) else "")
+    }
+    Row(
+        modifier          = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(icon)
+        Spacer(Modifier.width(8.dp))
+        Column(Modifier.weight(1f)) {
+            Text(name, style = MaterialTheme.typography.bodyMedium)
+            Text(label, style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+        OutlinedTextField(
+            value          = text,
+            onValueChange  = { text = it },
+            prefix         = { Text("€") },
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+            singleLine     = true,
+            modifier       = Modifier.width(110.dp),
+            colors         = OutlinedTextFieldDefaults.colors(
+                focusedContainerColor   = com.vrijgeld.ui.theme.Background,
+                unfocusedContainerColor = com.vrijgeld.ui.theme.Background
+            )
+        )
+        Spacer(Modifier.width(8.dp))
+        TextButton(onClick = { onSave(text) }) { Text("Save") }
     }
 }
 

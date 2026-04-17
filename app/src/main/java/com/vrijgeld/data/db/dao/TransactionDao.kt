@@ -64,6 +64,21 @@ interface TransactionDao {
     @Query("SELECT * FROM transactions WHERE amount < 0 AND date >= :since ORDER BY date DESC")
     suspend fun getRecentExpensesSince(since: Long): List<Transaction>
 
+    @Query("""
+        SELECT * FROM transactions
+        WHERE strftime('%Y-%m', date / 1000, 'unixepoch') = :yearMonth
+        ORDER BY date DESC
+    """)
+    suspend fun getForMonthOnce(yearMonth: String): List<Transaction>
+
+    @Query("""
+        SELECT * FROM transactions
+        WHERE categoryId = :catId
+          AND strftime('%Y-%m', date / 1000, 'unixepoch') IN (:yearMonths)
+        ORDER BY date DESC
+    """)
+    suspend fun getByCategoryYearMonths(catId: Long, yearMonths: List<String>): List<Transaction>
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insert(transaction: Transaction): Long
 

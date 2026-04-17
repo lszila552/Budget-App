@@ -15,14 +15,18 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.navigation.NavController
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
 import com.vrijgeld.data.repository.TransactionRepository
 import com.vrijgeld.ui.add.AddTransactionScreen
 import com.vrijgeld.ui.add.ReviewQueueScreen
+import com.vrijgeld.ui.budget.AllocationWorkflowScreen
 import com.vrijgeld.ui.budget.BudgetScreen
+import com.vrijgeld.ui.budget.CategoryDetailScreen
 import com.vrijgeld.ui.home.HomeScreen
 import com.vrijgeld.ui.settings.SettingsScreen
 import com.vrijgeld.ui.theme.Accent
@@ -34,11 +38,15 @@ import kotlinx.coroutines.flow.stateIn
 import javax.inject.Inject
 
 sealed class Screen(val route: String) {
-    object Home        : Screen("home")
-    object Add         : Screen("add")
-    object Budget      : Screen("budget")
-    object Settings    : Screen("settings")
-    object ReviewQueue : Screen("review_queue")
+    object Home           : Screen("home")
+    object Add            : Screen("add")
+    object Budget         : Screen("budget")
+    object Settings       : Screen("settings")
+    object ReviewQueue    : Screen("review_queue")
+    object Allocate       : Screen("allocate")
+    object CategoryDetail : Screen("category_detail/{categoryId}") {
+        fun createRoute(id: Long) = "category_detail/$id"
+    }
 }
 
 @HiltViewModel
@@ -67,6 +75,14 @@ fun NavGraph() {
             composable(Screen.Budget.route)      { BudgetScreen(navController) }
             composable(Screen.Settings.route)    { SettingsScreen(navController) }
             composable(Screen.ReviewQueue.route) { ReviewQueueScreen(navController) }
+            composable(Screen.Allocate.route)    { AllocationWorkflowScreen(navController) }
+            composable(
+                route     = Screen.CategoryDetail.route,
+                arguments = listOf(navArgument("categoryId") { type = NavType.LongType })
+            ) { backStack ->
+                val catId = backStack.arguments?.getLong("categoryId") ?: return@composable
+                CategoryDetailScreen(navController, catId)
+            }
         }
     }
 }

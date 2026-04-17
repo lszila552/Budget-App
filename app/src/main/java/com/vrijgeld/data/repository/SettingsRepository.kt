@@ -18,8 +18,18 @@ class SettingsRepository @Inject constructor(private val dao: SettingDao) {
     suspend fun getMonthlyIncome(): Long  = get("monthly_income")?.toLongOrNull() ?: 350_000L
     suspend fun getTargetSavingsRate(): Float = get("target_savings_rate")?.toFloatOrNull() ?: 40f
 
-    suspend fun getNotifWeeklyPace():        Boolean = get(KEY_NOTIF_WEEKLY_PACE)          != "false"
-    suspend fun getNotifBillLowBalance():    Boolean = get(KEY_NOTIF_BILL_LOW_BALANCE)     != "false"
-    suspend fun getNotifUnusualTx():         Boolean = get(KEY_NOTIF_UNUSUAL_TX)           != "false"
-    suspend fun getNotifSubscriptionRenewal(): Boolean = get(KEY_NOTIF_SUBSCRIPTION_RENEWAL) != "false"
+    suspend fun getNotifWeeklyPace():           Boolean = get(KEY_NOTIF_WEEKLY_PACE)             != "false"
+    suspend fun getNotifBillLowBalance():       Boolean = get(KEY_NOTIF_BILL_LOW_BALANCE)        != "false"
+    suspend fun getNotifUnusualTx():            Boolean = get(KEY_NOTIF_UNUSUAL_TX)              != "false"
+    suspend fun getNotifSubscriptionRenewal():  Boolean = get(KEY_NOTIF_SUBSCRIPTION_RENEWAL)    != "false"
+    suspend fun getVakantiegeldSmoothing():     Boolean = get("vakantiegeld_smoothing")           != "false"
+    suspend fun getVakantiegeldHoldingCents():  Long    = get("vakantiegeld_holding_cents")?.toLongOrNull() ?: 0L
+    suspend fun getVakantiegeldDripCents():     Long    = get("vakantiegeld_monthly_drip_cents")?.toLongOrNull() ?: 0L
+
+    suspend fun applyVakantiegeldSmoothing(totalAmount: Long) {
+        val drip    = totalAmount / 12
+        val holding = totalAmount - drip
+        set("vakantiegeld_holding_cents",       holding.toString())
+        set("vakantiegeld_monthly_drip_cents",  drip.toString())
+    }
 }

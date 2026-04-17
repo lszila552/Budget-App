@@ -19,4 +19,6 @@ class TransactionRepository @Inject constructor(private val dao: TransactionDao)
     suspend fun update(t: Transaction) = dao.update(t)
     suspend fun delete(t: Transaction) = dao.delete(t)
     suspend fun getByImportHash(hash: String) = dao.getByImportHash(hash)
+    suspend fun getForMonthOnce(yearMonth: String) = dao.getForMonthOnce(yearMonth)
+    suspend fun getByCategoryYearMonths(catId: Long, yearMonths: List<String>) = dao.getByCategoryYearMonths(catId, yearMonths)
 }
