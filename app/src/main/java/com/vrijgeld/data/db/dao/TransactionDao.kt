@@ -49,6 +49,21 @@ interface TransactionDao {
     """)
     fun getUncategorizedImported(): Flow<List<Transaction>>
 
+    @Query("SELECT * FROM transactions WHERE amount < 0 ORDER BY date ASC")
+    suspend fun getAllExpensesOnce(): List<Transaction>
+
+    @Query("SELECT * FROM transactions WHERE isRecurring = 1 AND amount < 0 ORDER BY date DESC")
+    suspend fun getRecurringOnce(): List<Transaction>
+
+    @Query("SELECT COALESCE(SUM(amount), 0) FROM transactions WHERE accountId = :accountId")
+    suspend fun getAccountBalance(accountId: Long): Long
+
+    @Query("SELECT * FROM transactions WHERE categoryId = :catId AND amount < 0 AND date >= :since ORDER BY date ASC")
+    suspend fun getCategoryExpensesSince(catId: Long, since: Long): List<Transaction>
+
+    @Query("SELECT * FROM transactions WHERE amount < 0 AND date >= :since ORDER BY date DESC")
+    suspend fun getRecentExpensesSince(since: Long): List<Transaction>
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insert(transaction: Transaction): Long
 

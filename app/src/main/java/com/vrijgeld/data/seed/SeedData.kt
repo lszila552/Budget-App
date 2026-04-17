@@ -81,7 +81,11 @@ val DUTCH_RULE_SPECS = listOf(
 )
 
 val DEFAULT_SETTINGS = listOf(
-    "target_savings_rate" to "40",
-    "monthly_income"      to "350000",
-    "fi_swr"              to "4",
+    "target_savings_rate"         to "40",
+    "monthly_income"              to "350000",
+    "fi_swr"                      to "4",
+    "notif_weekly_pace"           to "true",
+    "notif_bill_low_balance"      to "true",
+    "notif_unusual_tx"            to "true",
+    "notif_subscription_renewal"  to "true",
 )

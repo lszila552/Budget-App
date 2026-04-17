@@ -23,7 +23,9 @@ fun BudgetScreen(
     navController: NavController,
     viewModel: BudgetViewModel = hiltViewModel()
 ) {
-    val state by viewModel.uiState.collectAsState()
+    val state       by viewModel.uiState.collectAsState()
+    var selectedTab by remember { mutableIntStateOf(0) }
+    val tabs        = listOf("Budget", "Subscriptions", "Forecast")
 
     Scaffold(
         containerColor = Background,
@@ -39,32 +41,62 @@ fun BudgetScreen(
             )
         }
     ) { padding ->
-        LazyColumn(
-            modifier            = Modifier.padding(padding).background(Background),
-            contentPadding      = PaddingValues(16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
-            items(state.items, key = { it.category.id }) { item ->
-                if (item.category.monthlyBudget != null) {
-                    BudgetProgressBar(
-                        label  = item.category.name,
-                        icon   = item.category.icon,
-                        spent  = item.spent,
-                        budget = item.category.monthlyBudget
+        Column(Modifier.padding(padding).background(Background)) {
+            TabRow(
+                selectedTabIndex = selectedTab,
+                containerColor   = Surface
+            ) {
+                tabs.forEachIndexed { i, title ->
+                    Tab(
+                        selected = selectedTab == i,
+                        onClick  = { selectedTab = i },
+                        text     = { Text(title) }
                     )
-                } else {
-                    Row(
-                        Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        Text("${item.category.icon} ${item.category.name}",
-                            style = MaterialTheme.typography.bodyMedium)
-                        Text("€${item.spent / 100}",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    }
+                }
+            }
+
+            when (selectedTab) {
+                0 -> BudgetTab(state.items)
+                1 -> SubscriptionsTab(
+                    subscriptions       = state.subscriptions,
+                    totalMonthlySubCost = state.totalMonthlySubCost,
+                    onConfirm           = viewModel::confirm,
+                    onDismiss           = viewModel::dismiss
+                )
+                2 -> ForecastTab(state.forecast)
+            }
+        }
+    }
+}
+
+@Composable
+private fun BudgetTab(items: List<CategorySpendingItem>) {
+    LazyColumn(
+        modifier            = Modifier.fillMaxSize().background(Background),
+        contentPadding      = PaddingValues(16.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+        items(items, key = { it.category.id }) { item ->
+            if (item.category.monthlyBudget != null) {
+                BudgetProgressBar(
+                    label  = item.category.name,
+                    icon   = item.category.icon,
+                    spent  = item.spent,
+                    budget = item.category.monthlyBudget
+                )
+            } else {
+                Row(
+                    Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text("${item.category.icon} ${item.category.name}",
+                        style = MaterialTheme.typography.bodyMedium)
+                    Text("€${item.spent / 100}",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
         }
     }
 }
+

@@ -10,6 +10,10 @@ import com.vrijgeld.data.model.Account
 import com.vrijgeld.data.model.ImportSource
 import com.vrijgeld.data.model.Transaction
 import com.vrijgeld.data.repository.AccountRepository
+import com.vrijgeld.data.repository.KEY_NOTIF_BILL_LOW_BALANCE
+import com.vrijgeld.data.repository.KEY_NOTIF_SUBSCRIPTION_RENEWAL
+import com.vrijgeld.data.repository.KEY_NOTIF_UNUSUAL_TX
+import com.vrijgeld.data.repository.KEY_NOTIF_WEEKLY_PACE
 import com.vrijgeld.data.repository.SettingsRepository
 import com.vrijgeld.data.repository.TransactionRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -27,6 +31,13 @@ sealed class ImportState {
     data class Error(val message: String) : ImportState()
 }
 
+data class NotifPrefs(
+    val weeklyPace:          Boolean = true,
+    val billLowBalance:      Boolean = true,
+    val unusualTx:           Boolean = true,
+    val subscriptionRenewal: Boolean = true
+)
+
 @HiltViewModel
 class SettingsViewModel @Inject constructor(
     private val settingsRepo: SettingsRepository,
@@ -40,6 +51,30 @@ class SettingsViewModel @Inject constructor(
 
     private val _importState = MutableStateFlow<ImportState>(ImportState.Idle)
     val importState = _importState.asStateFlow()
+
+    private val _notifPrefs = MutableStateFlow(NotifPrefs())
+    val notifPrefs = _notifPrefs.asStateFlow()
+
+    init {
+        viewModelScope.launch {
+            _notifPrefs.value = NotifPrefs(
+                weeklyPace          = settingsRepo.getNotifWeeklyPace(),
+                billLowBalance      = settingsRepo.getNotifBillLowBalance(),
+                unusualTx           = settingsRepo.getNotifUnusualTx(),
+                subscriptionRenewal = settingsRepo.getNotifSubscriptionRenewal()
+            )
+        }
+    }
+
+    fun setNotifPref(key: String, enabled: Boolean) = viewModelScope.launch {
+        settingsRepo.set(key, if (enabled) "true" else "false")
+        _notifPrefs.value = NotifPrefs(
+            weeklyPace          = settingsRepo.getNotifWeeklyPace(),
+            billLowBalance      = settingsRepo.getNotifBillLowBalance(),
+            unusualTx           = settingsRepo.getNotifUnusualTx(),
+            subscriptionRenewal = settingsRepo.getNotifSubscriptionRenewal()
+        )
+    }
 
     fun importCamt053(uri: Uri, context: Context, accountId: Long) = viewModelScope.launch {
         _importState.value = ImportState.Loading

@@ -10,6 +10,15 @@ interface DetectedSubscriptionDao {
     @Query("SELECT * FROM detected_subscriptions WHERE isDismissed = 0 ORDER BY nextExpectedDate")
     fun getAll(): Flow<List<DetectedSubscription>>
 
+    @Query("SELECT * FROM detected_subscriptions WHERE isDismissed = 0 AND isConfirmed = 1 ORDER BY nextExpectedDate")
+    fun getConfirmed(): Flow<List<DetectedSubscription>>
+
+    @Query("SELECT * FROM detected_subscriptions WHERE isDismissed = 0 AND nextExpectedDate BETWEEN :from AND :to ORDER BY nextExpectedDate")
+    suspend fun getUpcomingOnce(from: Long, to: Long): List<DetectedSubscription>
+
+    @Query("SELECT * FROM detected_subscriptions WHERE merchantName = :name LIMIT 1")
+    suspend fun getByMerchant(name: String): DetectedSubscription?
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsert(subscription: DetectedSubscription)
 

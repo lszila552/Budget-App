@@ -7,8 +7,11 @@ import javax.inject.Singleton
 
 @Singleton
 class SubscriptionRepository @Inject constructor(private val dao: DetectedSubscriptionDao) {
-    fun getAll() = dao.getAll()
-    suspend fun upsert(s: DetectedSubscription) = dao.upsert(s)
-    suspend fun dismiss(id: Long) = dao.dismiss(id)
-    suspend fun confirm(id: Long) = dao.confirm(id)
+    fun getAll()       = dao.getAll()
+    fun getConfirmed() = dao.getConfirmed()
+    suspend fun getByMerchant(name: String)           = dao.getByMerchant(name)
+    suspend fun upsert(s: DetectedSubscription)       = dao.upsert(s)
+    suspend fun dismiss(id: Long)                     = dao.dismiss(id)
+    suspend fun confirm(id: Long)                     = dao.confirm(id)
+    suspend fun getUpcomingOnce(from: Long, to: Long) = dao.getUpcomingOnce(from, to)
 }

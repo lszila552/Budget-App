@@ -13,6 +13,9 @@ interface AccountDao {
     @Query("SELECT * FROM accounts WHERE isActive = 1 ORDER BY sortOrder")
     fun getActive(): Flow<List<Account>>
 
+    @Query("SELECT * FROM accounts WHERE isActive = 1 ORDER BY sortOrder")
+    suspend fun getActiveOnce(): List<Account>
+
     @Query("UPDATE accounts SET currentBalance = :balance WHERE id = :id")
     suspend fun updateBalance(id: Long, balance: Long)
 

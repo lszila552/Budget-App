@@ -4,16 +4,24 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
+import com.vrijgeld.data.repository.KEY_NOTIF_BILL_LOW_BALANCE
+import com.vrijgeld.data.repository.KEY_NOTIF_SUBSCRIPTION_RENEWAL
+import com.vrijgeld.data.repository.KEY_NOTIF_UNUSUAL_TX
+import com.vrijgeld.data.repository.KEY_NOTIF_WEEKLY_PACE
 import com.vrijgeld.ui.navigation.Screen
+import com.vrijgeld.ui.theme.Accent
 import com.vrijgeld.ui.theme.Background
 import com.vrijgeld.ui.theme.Surface
 
@@ -26,6 +34,7 @@ fun SettingsScreen(
     val context     = LocalContext.current
     val accounts    by viewModel.accounts.collectAsState()
     val importState by viewModel.importState.collectAsState()
+    val notifPrefs  by viewModel.notifPrefs.collectAsState()
 
     var selectedAccIdx by remember { mutableIntStateOf(0) }
 
@@ -41,6 +50,11 @@ fun SettingsScreen(
             viewModel.resetImportState()
         }
     }
+
+    val switchColors = SwitchDefaults.colors(
+        checkedThumbColor = Accent,
+        checkedTrackColor = Accent.copy(alpha = 0.4f)
+    )
 
     Scaffold(
         containerColor = Background,
@@ -61,7 +75,8 @@ fun SettingsScreen(
                 .padding(padding)
                 .padding(16.dp)
                 .fillMaxSize()
-                .background(Background),
+                .background(Background)
+                .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             Text("Import", style = MaterialTheme.typography.titleLarge)
@@ -101,16 +116,64 @@ fun SettingsScreen(
                 is ImportState.Success ->
                     Text("✓ Imported ${s.count} new transactions",
                         color = MaterialTheme.colorScheme.primary)
-                is ImportState.Error   ->
-                    Text("✗ ${s.message}",
-                        color = MaterialTheme.colorScheme.error)
+                is ImportState.Error ->
+                    Text("✗ ${s.message}", color = MaterialTheme.colorScheme.error)
                 else -> {}
             }
 
             HorizontalDivider()
-            Text("No accounts yet — add one to start importing.",
-                style = MaterialTheme.typography.bodySmall,
+
+            Text("Notifications", style = MaterialTheme.typography.titleLarge)
+
+            NotifToggleRow(
+                label    = "Weekly pace check",
+                sublabel = "Sunday: most over-budget category",
+                checked  = notifPrefs.weeklyPace,
+                onToggle = { viewModel.setNotifPref(KEY_NOTIF_WEEKLY_PACE, it) },
+                colors   = switchColors
+            )
+            NotifToggleRow(
+                label    = "Bill due + low balance",
+                sublabel = "2 days before charge, if balance is low",
+                checked  = notifPrefs.billLowBalance,
+                onToggle = { viewModel.setNotifPref(KEY_NOTIF_BILL_LOW_BALANCE, it) },
+                colors   = switchColors
+            )
+            NotifToggleRow(
+                label    = "Unusual transaction",
+                sublabel = "Charge >2× normal for that category",
+                checked  = notifPrefs.unusualTx,
+                onToggle = { viewModel.setNotifPref(KEY_NOTIF_UNUSUAL_TX, it) },
+                colors   = switchColors
+            )
+            NotifToggleRow(
+                label    = "Subscription renewal",
+                sublabel = "3 days before next expected charge",
+                checked  = notifPrefs.subscriptionRenewal,
+                onToggle = { viewModel.setNotifPref(KEY_NOTIF_SUBSCRIPTION_RENEWAL, it) },
+                colors   = switchColors
+            )
+        }
+    }
+}
+
+@Composable
+private fun NotifToggleRow(
+    label: String,
+    sublabel: String,
+    checked: Boolean,
+    onToggle: (Boolean) -> Unit,
+    colors: SwitchColors
+) {
+    Row(
+        modifier          = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Column(Modifier.weight(1f)) {
+            Text(label, style = MaterialTheme.typography.bodyMedium)
+            Text(sublabel, style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
+        Switch(checked = checked, onCheckedChange = onToggle, colors = colors)
     }
 }
