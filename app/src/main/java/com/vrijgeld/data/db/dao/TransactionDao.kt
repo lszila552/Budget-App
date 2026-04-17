@@ -28,6 +28,27 @@ interface TransactionDao {
     """)
     fun getForMonth(yearMonth: String): Flow<List<Transaction>>
 
+    @Query("""
+        SELECT COUNT(*) FROM transactions
+        WHERE categoryId IS NULL AND importSource IS NOT NULL AND importSource != 'MANUAL'
+    """)
+    fun countUncategorizedImported(): Flow<Int>
+
+    @Query("""
+        SELECT DISTINCT categoryId FROM transactions
+        WHERE categoryId IS NOT NULL
+        ORDER BY date DESC
+        LIMIT 8
+    """)
+    fun getRecentCategoryIds(): Flow<List<Long>>
+
+    @Query("""
+        SELECT * FROM transactions
+        WHERE categoryId IS NULL AND importSource IS NOT NULL AND importSource != 'MANUAL'
+        ORDER BY date DESC
+    """)
+    fun getUncategorizedImported(): Flow<List<Transaction>>
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insert(transaction: Transaction): Long
 
