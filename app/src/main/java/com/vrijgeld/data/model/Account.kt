@@ -1,4 +1,4 @@
-package com.lszila552.budgetapp.data.entity
+package com.vrijgeld.data.model
 
 import androidx.room.Entity
 import androidx.room.PrimaryKey
@@ -9,7 +9,7 @@ data class Account(
     val name: String,
     val type: AccountType,
     val currency: String = "EUR",
-    val currentBalance: Long,           // cents (€42.50 = 4250)
+    val currentBalance: Long,
     val institution: String? = null,
     val iban: String? = null,
     val includeInNetWorth: Boolean = true,
