@@ -25,7 +25,7 @@ import com.vrijgeld.ui.components.CategoryGrid
 import com.vrijgeld.ui.components.NumericKeypad
 import com.vrijgeld.ui.theme.Accent
 import com.vrijgeld.ui.theme.Background
-import com.vrijgeld.ui.theme.Surface
+import com.vrijgeld.ui.theme.Surface as SurfaceColor
 import com.vrijgeld.ui.theme.SurfaceVar
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -54,7 +54,7 @@ fun AddTransactionScreen(
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, null)
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = Surface)
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = SurfaceColor)
             )
         }
     ) { padding ->
