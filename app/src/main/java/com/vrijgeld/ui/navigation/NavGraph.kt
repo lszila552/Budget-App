@@ -34,7 +34,7 @@ import com.vrijgeld.ui.settings.SettingsScreen
 import com.vrijgeld.ui.wealth.WealthScreen
 import com.vrijgeld.ui.theme.Accent
 import com.vrijgeld.ui.theme.AmberWarn
-import com.vrijgeld.ui.theme.Surface
+import com.vrijgeld.ui.theme.Surface as SurfaceColor
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.stateIn
@@ -99,7 +99,7 @@ private fun AppBottomBar(navController: NavController, uncategorizedCount: Int) 
     val backStack by navController.currentBackStackEntryAsState()
     val current   = backStack?.destination?.route
 
-    NavigationBar(containerColor = Surface) {
+    NavigationBar(containerColor = SurfaceColor) {
         NavigationBarItem(
             selected = current == Screen.Settings.route,
             onClick  = { navController.navigateTo(Screen.Settings.route) },
