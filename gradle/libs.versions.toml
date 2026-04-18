@@ -7,7 +7,7 @@ hiltNav = "1.2.0"
 room = "2.6.1"
 ksp = "2.0.0-1.0.21"
 navigation = "2.8.0"
-sqlcipher = "4.5.6"
+sqlcipher = "4.6.1"
 securityCrypto = "1.0.0"
 biometric = "1.1.0"
 lifecycle = "2.8.3"
@@ -38,7 +38,7 @@ lifecycle-runtime        = { group = "androidx.lifecycle",         name = "lifec
 room-runtime             = { group = "androidx.room",              name = "room-runtime",                 version.ref = "room" }
 room-ktx                 = { group = "androidx.room",              name = "room-ktx",                     version.ref = "room" }
 room-compiler            = { group = "androidx.room",              name = "room-compiler",                version.ref = "room" }
-sqlcipher                = { group = "net.zetetic",                name = "android-database-sqlcipher",   version.ref = "sqlcipher" }
+sqlcipher                = { group = "net.zetetic",                name = "sqlcipher-android",            version.ref = "sqlcipher", ext = "aar" }
 sqlite-ktx               = { group = "androidx.sqlite",            name = "sqlite-ktx",                   version = "2.4.0" }
 security-crypto          = { group = "androidx.security",          name = "security-crypto",              version.ref = "securityCrypto" }
 biometric                = { group = "androidx.biometric",         name = "biometric",                    version.ref = "biometric" }
