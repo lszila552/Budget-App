@@ -71,10 +71,9 @@ class NotificationWorker(
         if (prefs.getNotifBillLowBalance()) {
             val dueSoon = subRepo.getUpcomingOnce(now, now + 2 * MS_PER_DAY)
             if (dueSoon.isNotEmpty()) {
-                val totalBalance = accDao.getActiveOnce()
-                    .sumOf { txRepo.getAccountBalance(it.id) }
+                val totalBalance = accDao.getActiveOnce().sumOf { it.currentBalance }
                 dueSoon.forEach { sub ->
-                    if (totalBalance < sub.estimatedAmount * 1.5) {
+                    if (totalBalance < (sub.estimatedAmount * 1.5).toLong()) {
                         val days = ((sub.nextExpectedDate - now) / MS_PER_DAY).toInt().coerceAtLeast(0)
                         notif.notifyBillDueLowBalance(sub.merchantName, sub.estimatedAmount, days)
                     }
@@ -143,7 +142,7 @@ class NotificationWorker(
             val threshold = mean + 2 * stdDev
 
             newTxs.forEach { tx ->
-                if (-tx.amount > threshold) {
+                if ((-tx.amount).toDouble() > threshold) {
                     val catName = cats[catId]?.name ?: "Unknown"
                     notif.notifyUnusualTransaction(tx.description, -tx.amount, catName)
                 }
