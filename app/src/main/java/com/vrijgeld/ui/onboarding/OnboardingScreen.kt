@@ -13,7 +13,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.vrijgeld.ui.theme.Accent
 import com.vrijgeld.ui.theme.Background
-import com.vrijgeld.ui.theme.Surface
 import com.vrijgeld.ui.theme.TextSecondary
 
 private data class OnboardingPage(val emoji: String, val title: String, val body: String)
