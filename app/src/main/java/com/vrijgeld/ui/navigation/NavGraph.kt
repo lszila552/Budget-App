@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.BarChart
 import androidx.compose.material.icons.filled.PieChart
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.*
@@ -29,6 +30,7 @@ import com.vrijgeld.ui.budget.BudgetScreen
 import com.vrijgeld.ui.budget.CategoryDetailScreen
 import com.vrijgeld.ui.home.HomeScreen
 import com.vrijgeld.ui.settings.SettingsScreen
+import com.vrijgeld.ui.wealth.WealthScreen
 import com.vrijgeld.ui.theme.Accent
 import com.vrijgeld.ui.theme.AmberWarn
 import com.vrijgeld.ui.theme.Surface
@@ -44,6 +46,7 @@ sealed class Screen(val route: String) {
     object Settings       : Screen("settings")
     object ReviewQueue    : Screen("review_queue")
     object Allocate       : Screen("allocate")
+    object Wealth         : Screen("wealth")
     object CategoryDetail : Screen("category_detail/{categoryId}") {
         fun createRoute(id: Long) = "category_detail/$id"
     }
@@ -76,6 +79,7 @@ fun NavGraph() {
             composable(Screen.Settings.route)    { SettingsScreen(navController) }
             composable(Screen.ReviewQueue.route) { ReviewQueueScreen(navController) }
             composable(Screen.Allocate.route)    { AllocationWorkflowScreen(navController) }
+            composable(Screen.Wealth.route)      { WealthScreen() }
             composable(
                 route     = Screen.CategoryDetail.route,
                 arguments = listOf(navArgument("categoryId") { type = NavType.LongType })
@@ -142,6 +146,13 @@ private fun AppBottomBar(navController: NavController, uncategorizedCount: Int) 
             onClick  = { navController.navigateTo(Screen.Budget.route) },
             icon     = { Icon(Icons.Filled.PieChart, "Budget") },
             label    = { Text("Budget") },
+            colors   = navItemColors()
+        )
+        NavigationBarItem(
+            selected = current == Screen.Wealth.route,
+            onClick  = { navController.navigateTo(Screen.Wealth.route) },
+            icon     = { Icon(Icons.Filled.BarChart, "Wealth") },
+            label    = { Text("Wealth") },
             colors   = navItemColors()
         )
     }

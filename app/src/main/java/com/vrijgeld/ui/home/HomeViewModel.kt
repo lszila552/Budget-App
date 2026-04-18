@@ -17,12 +17,21 @@ import kotlinx.coroutines.launch
 import java.util.Calendar
 import javax.inject.Inject
 
+data class StsBreakdown(
+    val incomeThisMonth: Long,
+    val fixedRemaining: Long,
+    val savingsAllocations: Long,
+    val variableSpent: Long,
+    val safeToSpend: Long
+)
+
 data class HomeUiState(
-    val safeToSpendToday: Long   = 0L,
-    val safeToSpendMonth: Long   = 0L,
-    val savingsRate: Float       = 0f,
-    val targetSavingsRate: Float = 0.40f,
-    val ringCategories: List<CategoryRingData> = emptyList()
+    val safeToSpendToday: Long               = 0L,
+    val safeToSpendMonth: Long               = 0L,
+    val savingsRate: Float                   = 0f,
+    val targetSavingsRate: Float             = 0.40f,
+    val ringCategories: List<CategoryRingData> = emptyList(),
+    val breakdown: StsBreakdown?             = null
 )
 
 @HiltViewModel
@@ -50,18 +59,17 @@ class HomeViewModel @Inject constructor(
         val income     = settingsRepo.getMonthlyIncome()
         val targetRate = settingsRepo.getTargetSavingsRate() / 100f
         val cats       = categoryDao.getAllOnce()
-        val catById    = cats.associateBy { it.id }
         val catByName  = cats.associateBy { it.name }
 
-        val fixedCats    = cats.filter { it.name in FIXED_CATEGORY_NAMES && it.type == CategoryType.EXPENSE }
-        val sinkingCats  = cats.filter { it.isSinkingFund && it.type == CategoryType.EXPENSE }
-        val fixedIds     = fixedCats.map { it.id }.toSet()
-        val sinkingIds   = sinkingCats.map { it.id }.toSet()
+        val fixedCats   = cats.filter { it.name in FIXED_CATEGORY_NAMES && it.type == CategoryType.EXPENSE }
+        val sinkingCats = cats.filter { it.isSinkingFund && it.type == CategoryType.EXPENSE }
+        val fixedIds    = fixedCats.map { it.id }.toSet()
+        val sinkingIds  = sinkingCats.map { it.id }.toSet()
 
         val sinkingContributions = sinkingCats.sumOf { it.sinkingFundTarget?.div(12) ?: 0L }
 
         transactionRepo.getForMonth(yearMonth).collect { transactions ->
-            val expenses = transactions.filter { it.amount < 0 }
+            val expenses    = transactions.filter { it.amount < 0 }
             val totalIncome = transactions.filter { it.amount > 0 }.sumOf { it.amount }
                 .let { if (it > 0L) it else income }
 
@@ -73,21 +81,24 @@ class HomeViewModel @Inject constructor(
                 .filter { it.categoryId == null || (it.categoryId !in fixedIds && it.categoryId !in sinkingIds) }
                 .sumOf { -it.amount }
 
-            val sts = safeToSpendCalc.calculate(
-                SafeToSpendCalculator.CalcInput(
-                    incomeThisMonth      = totalIncome,
-                    fixedBudgets         = fixedBudgets,
-                    fixedSpent           = fixedSpent,
-                    sinkingContributions = sinkingContributions,
-                    variableSpent        = variableSpent,
-                    dayOfMonth           = dayOfMonth,
-                    daysInMonth          = daysInMonth
-                )
+            val input = SafeToSpendCalculator.CalcInput(
+                incomeThisMonth      = totalIncome,
+                fixedBudgets         = fixedBudgets,
+                fixedSpent           = fixedSpent,
+                sinkingContributions = sinkingContributions,
+                variableSpent        = variableSpent,
+                dayOfMonth           = dayOfMonth,
+                daysInMonth          = daysInMonth
             )
+            val sts  = safeToSpendCalc.calculate(input)
             val rate = savingsRateCalc.calculate(totalIncome, expenses.sumOf { -it.amount })
 
+            val fixedRemaining = fixedBudgets.entries.sumOf { (id, budget) ->
+                maxOf(0L, budget - (fixedSpent[id] ?: 0L))
+            }
+
             val rings = ringCategoryNames.mapNotNull { name ->
-                val cat = catByName[name] ?: return@mapNotNull null
+                val cat   = catByName[name] ?: return@mapNotNull null
                 val spent = expenses.filter { it.categoryId == cat.id }.sumOf { -it.amount }
                 CategoryRingData(cat.name, cat.icon, spent, cat.monthlyBudget ?: 0L)
             }
@@ -97,7 +108,14 @@ class HomeViewModel @Inject constructor(
                 safeToSpendMonth  = sts.monthly,
                 savingsRate       = rate,
                 targetSavingsRate = targetRate,
-                ringCategories    = rings
+                ringCategories    = rings,
+                breakdown         = StsBreakdown(
+                    incomeThisMonth    = totalIncome,
+                    fixedRemaining     = fixedRemaining,
+                    savingsAllocations = sinkingContributions,
+                    variableSpent      = variableSpent,
+                    safeToSpend        = sts.monthly
+                )
             )
         }
     }

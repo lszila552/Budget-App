@@ -108,6 +108,11 @@ class SettingsViewModel @Inject constructor(
 
     fun resetImportState() { _importState.value = ImportState.Idle }
 
+    fun updateAccountBalance(accountId: Long, amountText: String) = viewModelScope.launch {
+        val cents = amountText.toDoubleOrNull()?.times(100)?.toLong() ?: return@launch
+        accountRepo.updateBalance(accountId, cents)
+    }
+
     fun updateCategoryBudget(category: Category, amountText: String) = viewModelScope.launch {
         val cents = amountText.toDoubleOrNull()?.times(100)?.toLong() ?: return@launch
         val updated = category.copy(monthlyBudget = cents)

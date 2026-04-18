@@ -84,4 +84,7 @@ dependencies {
     // Glance AppWidget
     implementation(libs.glance.appwidget)
     implementation(libs.glance.material3)
+
+    // Vico charts
+    implementation(libs.vico.compose.m3)
 }

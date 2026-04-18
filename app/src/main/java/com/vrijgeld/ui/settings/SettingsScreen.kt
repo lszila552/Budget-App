@@ -23,6 +23,7 @@ import com.vrijgeld.data.repository.KEY_NOTIF_BILL_LOW_BALANCE
 import com.vrijgeld.data.repository.KEY_NOTIF_SUBSCRIPTION_RENEWAL
 import com.vrijgeld.data.repository.KEY_NOTIF_UNUSUAL_TX
 import com.vrijgeld.data.repository.KEY_NOTIF_WEEKLY_PACE
+import com.vrijgeld.data.model.AccountType
 import com.vrijgeld.ui.navigation.Screen
 import com.vrijgeld.ui.theme.Accent
 import com.vrijgeld.ui.theme.Background
@@ -158,6 +159,28 @@ fun SettingsScreen(
                 colors   = switchColors
             )
 
+            // Manual balance updates for non-transaction-feed accounts
+            val manualAccounts = accounts.filter {
+                it.type == AccountType.INVESTMENT || it.type == AccountType.PROPERTY
+            }
+            if (manualAccounts.isNotEmpty()) {
+                HorizontalDivider()
+                Text("Manual Account Balances", style = MaterialTheme.typography.titleLarge)
+                Text(
+                    "Update investment and property values (DEGIRO, IBKR, WOZ)",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                manualAccounts.forEach { account ->
+                    ManualBalanceRow(
+                        name      = account.name,
+                        balance   = account.currentBalance,
+                        typeLabel = if (account.type == AccountType.INVESTMENT) "Investment" else "Property",
+                        onSave    = { viewModel.updateAccountBalance(account.id, it) }
+                    )
+                }
+            }
+
             if (categories.isNotEmpty()) {
                 HorizontalDivider()
 
@@ -198,6 +221,40 @@ fun SettingsScreen(
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun ManualBalanceRow(
+    name: String,
+    balance: Long,
+    typeLabel: String,
+    onSave: (String) -> Unit
+) {
+    var text by remember(balance) { mutableStateOf("%.2f".format(balance / 100.0)) }
+    Row(
+        modifier          = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Column(Modifier.weight(1f)) {
+            Text(name, style = MaterialTheme.typography.bodyMedium)
+            Text(typeLabel, style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+        OutlinedTextField(
+            value           = text,
+            onValueChange   = { text = it },
+            prefix          = { Text("€") },
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+            singleLine      = true,
+            modifier        = Modifier.width(110.dp),
+            colors          = OutlinedTextFieldDefaults.colors(
+                focusedContainerColor   = com.vrijgeld.ui.theme.Background,
+                unfocusedContainerColor = com.vrijgeld.ui.theme.Background
+            )
+        )
+        Spacer(Modifier.width(8.dp))
+        TextButton(onClick = { onSave(text) }) { Text("Save") }
     }
 }
 

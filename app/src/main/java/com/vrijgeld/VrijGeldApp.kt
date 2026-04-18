@@ -13,6 +13,7 @@ import com.vrijgeld.domain.CHANNEL_PACE
 import com.vrijgeld.domain.CHANNEL_SUBSCRIPTION
 import com.vrijgeld.domain.CHANNEL_UNUSUAL
 import com.vrijgeld.worker.MonthRolloverWorker
+import com.vrijgeld.worker.NetWorthSnapshotWorker
 import com.vrijgeld.worker.NotificationWorker
 import com.vrijgeld.worker.SubscriptionDetectionWorker
 import com.vrijgeld.worker.WidgetUpdateWorker
@@ -67,6 +68,11 @@ class VrijGeldApp : Application() {
             "month_rollover",
             ExistingPeriodicWorkPolicy.KEEP,
             PeriodicWorkRequestBuilder<MonthRolloverWorker>(1, TimeUnit.DAYS).build()
+        )
+        wm.enqueueUniquePeriodicWork(
+            "net_worth_snapshot",
+            ExistingPeriodicWorkPolicy.KEEP,
+            PeriodicWorkRequestBuilder<NetWorthSnapshotWorker>(1, TimeUnit.DAYS).build()
         )
     }
 }

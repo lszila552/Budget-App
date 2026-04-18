@@ -32,4 +32,12 @@ class SettingsRepository @Inject constructor(private val dao: SettingDao) {
         set("vakantiegeld_holding_cents",       holding.toString())
         set("vakantiegeld_monthly_drip_cents",  drip.toString())
     }
+
+    // FIRE settings
+    suspend fun getFiAnnualExpenses(): Long  = get("fi_annual_expenses")?.toLongOrNull()  ?: 3_000_000L
+    suspend fun getFiSwr(): Float            = get("fi_swr")?.toFloatOrNull()             ?: 4f
+    suspend fun getFiAssumedReturn(): Double = get("fi_assumed_return")?.toDoubleOrNull() ?: 5.0
+    suspend fun getBirthYear(): Int          = get("birth_year")?.toIntOrNull()           ?: 1990
+    suspend fun getAowMonthly(): Long        = get("aow_monthly")?.toLongOrNull()         ?: 0L
+    suspend fun getPensionMonthly(): Long    = get("occupational_pension_monthly")?.toLongOrNull() ?: 0L
 }

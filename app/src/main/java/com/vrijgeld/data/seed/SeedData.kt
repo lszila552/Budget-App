@@ -81,14 +81,19 @@ val DUTCH_RULE_SPECS = listOf(
 )
 
 val DEFAULT_SETTINGS = listOf(
-    "target_savings_rate"         to "40",
-    "monthly_income"              to "350000",
-    "fi_swr"                      to "4",
-    "notif_weekly_pace"           to "true",
-    "notif_bill_low_balance"      to "true",
-    "notif_unusual_tx"            to "true",
-    "notif_subscription_renewal"  to "true",
-    "vakantiegeld_smoothing"      to "true",
-    "vakantiegeld_holding_cents"  to "0",
+    "target_savings_rate"             to "40",
+    "monthly_income"                  to "350000",
+    "fi_swr"                          to "4",
+    "fi_annual_expenses"              to "3000000",   // €30,000 in cents
+    "fi_assumed_return"               to "5",         // 5% real return
+    "birth_year"                      to "1990",
+    "aow_monthly"                     to "0",         // cents
+    "occupational_pension_monthly"    to "0",         // cents
+    "notif_weekly_pace"               to "true",
+    "notif_bill_low_balance"          to "true",
+    "notif_unusual_tx"                to "true",
+    "notif_subscription_renewal"      to "true",
+    "vakantiegeld_smoothing"          to "true",
+    "vakantiegeld_holding_cents"      to "0",
     "vakantiegeld_monthly_drip_cents" to "0",
 )
