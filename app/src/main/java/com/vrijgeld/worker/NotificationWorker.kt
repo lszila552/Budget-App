@@ -74,7 +74,7 @@ class NotificationWorker(
                 val totalBalance = accDao.getActiveOnce()
                     .sumOf { txRepo.getAccountBalance(it.id) }
                 dueSoon.forEach { sub ->
-                    if (totalBalance < sub.estimatedAmount * 1.5) {
+                    if (totalBalance < (sub.estimatedAmount * 1.5).toLong()) {
                         val days = ((sub.nextExpectedDate - now) / MS_PER_DAY).toInt().coerceAtLeast(0)
                         notif.notifyBillDueLowBalance(sub.merchantName, sub.estimatedAmount, days)
                     }
