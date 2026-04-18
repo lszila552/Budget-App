@@ -16,6 +16,7 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.vrijgeld.data.model.Transaction
+import com.vrijgeld.domain.MerchantSummary
 import com.vrijgeld.ui.components.SimpleBarChart
 import com.vrijgeld.ui.components.SparkLineChart
 import com.vrijgeld.ui.theme.Background
@@ -34,8 +35,8 @@ fun CategoryDetailScreen(
     categoryId: Long,
     viewModel: CategoryDetailViewModel = hiltViewModel()
 ) {
-    val state by viewModel.uiState.collectAsState()
-    val cat   = state.category
+    val state   by viewModel.uiState.collectAsState()
+    val cat     = state.category
     val dateFmt = SimpleDateFormat("d MMM", Locale("nl"))
 
     Scaffold(
@@ -53,8 +54,8 @@ fun CategoryDetailScreen(
         }
     ) { padding ->
         LazyColumn(
-            modifier       = Modifier.padding(padding).background(Background),
-            contentPadding = PaddingValues(16.dp),
+            modifier            = Modifier.padding(padding).background(Background),
+            contentPadding      = PaddingValues(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             // Daily sparkline
@@ -66,8 +67,7 @@ fun CategoryDetailScreen(
                     ) {
                         Column(Modifier.padding(12.dp)) {
                             Text("Daily spending this month",
-                                style = MaterialTheme.typography.labelMedium,
-                                color = TextSecondary)
+                                style = MaterialTheme.typography.labelMedium, color = TextSecondary)
                             Spacer(Modifier.height(8.dp))
                             SparkLineChart(
                                 data     = state.dailySpend,
@@ -78,7 +78,7 @@ fun CategoryDetailScreen(
                 }
             }
 
-            // 3-month comparison bar chart
+            // 6-month comparison bar chart
             if (state.monthlyComparison.isNotEmpty()) {
                 item {
                     Card(
@@ -86,11 +86,10 @@ fun CategoryDetailScreen(
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Column(Modifier.padding(12.dp)) {
-                            Text("3-month comparison",
-                                style = MaterialTheme.typography.labelMedium,
-                                color = TextSecondary)
+                            Text("6-month comparison",
+                                style = MaterialTheme.typography.labelMedium, color = TextSecondary)
                             Spacer(Modifier.height(8.dp))
-                            val maxVal = state.monthlyComparison.maxOfOrNull { it.second } ?: 1L
+                            val maxVal = state.monthlyComparison.maxOfOrNull { it.second }?.coerceAtLeast(1L) ?: 1L
                             SimpleBarChart(
                                 bars     = state.monthlyComparison,
                                 maxValue = maxVal,
@@ -103,8 +102,10 @@ fun CategoryDetailScreen(
                             ) {
                                 state.monthlyComparison.forEach { (ym, amount) ->
                                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                        Text(ym.takeLast(2), style = MaterialTheme.typography.labelSmall, color = TextSecondary)
-                                        Text("€${amount / 100}", style = MaterialTheme.typography.labelSmall,
+                                        Text(ym.takeLast(2),
+                                            style = MaterialTheme.typography.labelSmall, color = TextSecondary)
+                                        Text("€${amount / 100}",
+                                            style = MaterialTheme.typography.labelSmall,
                                             fontFamily = JetBrainsMonoFamily)
                                     }
                                 }
@@ -114,17 +115,35 @@ fun CategoryDetailScreen(
                 }
             }
 
-            // Transaction list header
+            // Top merchants
+            if (state.topMerchants.isNotEmpty()) {
+                item {
+                    Card(
+                        colors   = CardDefaults.cardColors(containerColor = SurfaceVar),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Text("Top merchants this month",
+                                style = MaterialTheme.typography.labelMedium, color = TextSecondary)
+                            state.topMerchants.forEachIndexed { i, m ->
+                                MerchantRow(rank = i + 1, merchant = m)
+                            }
+                        }
+                    }
+                }
+            }
+
             item {
                 Text("Transactions this month",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold)
+                    style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
             }
 
             if (state.transactions.isEmpty()) {
                 item {
-                    Text("No transactions yet.", style = MaterialTheme.typography.bodyMedium,
-                        color = TextSecondary)
+                    Box(Modifier.fillMaxWidth().padding(vertical = 32.dp), contentAlignment = Alignment.Center) {
+                        Text("No transactions this month.",
+                            style = MaterialTheme.typography.bodyMedium, color = TextSecondary)
+                    }
                 }
             }
 
@@ -132,6 +151,29 @@ fun CategoryDetailScreen(
                 TransactionRow(tx, dateFmt)
             }
         }
+    }
+}
+
+@Composable
+private fun MerchantRow(rank: Int, merchant: MerchantSummary) {
+    Row(
+        Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text("$rank.", style = MaterialTheme.typography.labelSmall, color = TextSecondary, modifier = Modifier.width(18.dp))
+            Column {
+                Text(merchant.name, style = MaterialTheme.typography.bodySmall)
+                Text("${merchant.count}×", style = MaterialTheme.typography.labelSmall, color = TextSecondary)
+            }
+        }
+        Text(
+            "€${"%.2f".format(merchant.totalCents / 100.0)}",
+            fontFamily = JetBrainsMonoFamily,
+            fontSize   = 13.sp,
+            fontWeight = FontWeight.SemiBold
+        )
     }
 }
 
@@ -145,15 +187,13 @@ private fun TransactionRow(tx: Transaction, dateFmt: SimpleDateFormat) {
         Column(Modifier.weight(1f)) {
             Text(tx.description, style = MaterialTheme.typography.bodyMedium)
             Text(dateFmt.format(Date(tx.date)),
-                style = MaterialTheme.typography.bodySmall,
-                color = TextSecondary)
+                style = MaterialTheme.typography.bodySmall, color = TextSecondary)
         }
         Text(
-            "€${kotlin.math.abs(tx.amount) / 100}",
+            "€${"%.2f".format(kotlin.math.abs(tx.amount) / 100.0)}",
             fontFamily = JetBrainsMonoFamily,
             fontSize   = 14.sp,
-            color      = if (tx.amount < 0) MaterialTheme.colorScheme.error
-                         else com.vrijgeld.ui.theme.Accent
+            color      = if (tx.amount < 0) MaterialTheme.colorScheme.error else com.vrijgeld.ui.theme.Accent
         )
     }
 }

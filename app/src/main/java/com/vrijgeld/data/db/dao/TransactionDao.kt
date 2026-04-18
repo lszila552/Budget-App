@@ -93,4 +93,7 @@ interface TransactionDao {
 
     @Query("SELECT * FROM transactions WHERE importHash = :hash LIMIT 1")
     suspend fun getByImportHash(hash: String): Transaction?
+
+    @Query("SELECT * FROM transactions ORDER BY date DESC")
+    suspend fun getAllOnce(): List<Transaction>
 }

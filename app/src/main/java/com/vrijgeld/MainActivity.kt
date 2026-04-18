@@ -21,6 +21,8 @@ import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.core.view.WindowCompat
 import com.vrijgeld.ui.navigation.NavGraph
+import com.vrijgeld.ui.onboarding.OnboardingScreen
+import com.vrijgeld.ui.theme.AppPreferences
 import com.vrijgeld.ui.theme.Background
 import com.vrijgeld.ui.theme.TextSecondary
 import com.vrijgeld.ui.theme.VrijGeldTheme
@@ -35,23 +37,55 @@ class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         WindowCompat.setDecorFitsSystemWindows(window, false)
         super.onCreate(savedInstanceState)
-        authenticate()
+
+        val prefs = AppPreferences(this)
+
+        authenticate(prefs.biometricEnabled)
+
         setContent {
-            VrijGeldTheme {
+            val theme       = remember { mutableStateOf(prefs.theme) }
+            val accentIndex = remember { mutableIntStateOf(prefs.accentIndex) }
+
+            // Refresh from prefs whenever we resume (theme/accent may change in Settings)
+            DisposableEffect(Unit) {
+                onDispose {}
+            }
+
+            VrijGeldTheme(appTheme = theme.value, accentIndex = accentIndex.value) {
                 AnimatedContent(targetState = isAuthenticated, label = "auth") { authenticated ->
-                    if (authenticated) NavGraph()
-                    else LockScreen(error = authError, onRetry = ::authenticate)
+                    if (!authenticated) {
+                        LockScreen(error = authError, onRetry = { authenticate(prefs.biometricEnabled) })
+                    } else {
+                        var onboardingDone by remember { mutableStateOf(prefs.onboardingDone) }
+                        if (!onboardingDone) {
+                            OnboardingScreen(onDone = {
+                                prefs.onboardingDone = true
+                                onboardingDone = true
+                            })
+                        } else {
+                            // Re-read prefs so Settings changes take effect live
+                            LaunchedEffect(Unit) {
+                                theme.value       = prefs.theme
+                                accentIndex.value = prefs.accentIndex
+                            }
+                            NavGraph()
+                        }
+                    }
                 }
             }
         }
     }
 
-    private fun authenticate() {
+    private fun authenticate(biometricEnabled: Boolean) {
+        if (!biometricEnabled) {
+            isAuthenticated = true
+            return
+        }
+
         val canAuth = BiometricManager.from(this)
             .canAuthenticate(BIOMETRIC_STRONG or DEVICE_CREDENTIAL)
 
         if (canAuth != BiometricManager.BIOMETRIC_SUCCESS) {
-            // No lock screen configured — allow access on developer devices
             isAuthenticated = true
             return
         }
@@ -83,8 +117,8 @@ class MainActivity : AppCompatActivity() {
 @Composable
 private fun LockScreen(error: String?, onRetry: () -> Unit) {
     Box(
-        modifier            = Modifier.fillMaxSize().background(Background),
-        contentAlignment    = Alignment.Center
+        modifier         = Modifier.fillMaxSize().background(Background),
+        contentAlignment = Alignment.Center
     ) {
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,

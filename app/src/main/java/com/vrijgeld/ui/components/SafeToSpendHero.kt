@@ -12,6 +12,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.vrijgeld.ui.theme.AmberWarn
 import com.vrijgeld.ui.theme.Accent
 import com.vrijgeld.ui.theme.JetBrainsMonoFamily
 import com.vrijgeld.ui.theme.Outline
@@ -19,23 +20,41 @@ import com.vrijgeld.ui.theme.TextSecondary
 
 @Composable
 fun SafeToSpendHero(daily: Long, monthly: Long, modifier: Modifier = Modifier) {
+    val isNegativeDaily   = daily < 0
+    val isNegativeMonthly = monthly < 0
+
+    val dailyColor   = if (isNegativeDaily) AmberWarn else Accent
+    val monthlyColor = if (isNegativeMonthly) AmberWarn else TextSecondary
+
+    val dailyLabel = if (isNegativeDaily) {
+        "Over by €${kotlin.math.abs(daily) / 100}"
+    } else {
+        "€${daily / 100}"
+    }
+
+    val monthlyLabel = if (isNegativeMonthly) {
+        "Over by €${"%.2f".format(kotlin.math.abs(monthly) / 100.0)} this month"
+    } else {
+        "€${"%.2f".format(monthly / 100.0)} this month"
+    }
+
     Column(modifier = modifier, horizontalAlignment = Alignment.CenterHorizontally) {
         Text(
-            text          = "SAFE TO SPEND",
+            text          = if (isNegativeDaily) "OVER BUDGET" else "SAFE TO SPEND",
             style         = MaterialTheme.typography.labelSmall,
-            color         = TextSecondary,
+            color         = if (isNegativeDaily) AmberWarn else TextSecondary,
             letterSpacing = 3.sp
         )
         Spacer(Modifier.height(4.dp))
         Text(
-            text       = "€${daily / 100}",
+            text       = dailyLabel,
             fontFamily = JetBrainsMonoFamily,
             fontSize   = 72.sp,
             fontWeight = FontWeight.Bold,
-            color      = Accent
+            color      = dailyColor
         )
         Text(
-            text  = "today",
+            text  = if (isNegativeDaily) "today" else "today",
             style = MaterialTheme.typography.bodyMedium,
             color = TextSecondary
         )
@@ -46,11 +65,11 @@ fun SafeToSpendHero(daily: Long, monthly: Long, modifier: Modifier = Modifier) {
             border = BorderStroke(1.dp, Outline)
         ) {
             Text(
-                text       = "€${monthly / 100} this month",
+                text       = monthlyLabel,
                 modifier   = Modifier.padding(horizontal = 20.dp, vertical = 8.dp),
                 fontFamily = JetBrainsMonoFamily,
                 style      = MaterialTheme.typography.bodyMedium,
-                color      = TextSecondary
+                color      = monthlyColor
             )
         }
     }

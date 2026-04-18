@@ -29,6 +29,7 @@ import com.vrijgeld.ui.budget.AllocationWorkflowScreen
 import com.vrijgeld.ui.budget.BudgetScreen
 import com.vrijgeld.ui.budget.CategoryDetailScreen
 import com.vrijgeld.ui.home.HomeScreen
+import com.vrijgeld.ui.review.WeeklyReviewScreen
 import com.vrijgeld.ui.settings.SettingsScreen
 import com.vrijgeld.ui.wealth.WealthScreen
 import com.vrijgeld.ui.theme.Accent
@@ -47,6 +48,7 @@ sealed class Screen(val route: String) {
     object ReviewQueue    : Screen("review_queue")
     object Allocate       : Screen("allocate")
     object Wealth         : Screen("wealth")
+    object WeeklyReview   : Screen("weekly_review")
     object CategoryDetail : Screen("category_detail/{categoryId}") {
         fun createRoute(id: Long) = "category_detail/$id"
     }
@@ -73,13 +75,14 @@ fun NavGraph() {
             startDestination = Screen.Home.route,
             modifier         = Modifier.padding(padding)
         ) {
-            composable(Screen.Home.route)        { HomeScreen() }
-            composable(Screen.Add.route)         { AddTransactionScreen(navController) }
-            composable(Screen.Budget.route)      { BudgetScreen(navController) }
-            composable(Screen.Settings.route)    { SettingsScreen(navController) }
-            composable(Screen.ReviewQueue.route) { ReviewQueueScreen(navController) }
-            composable(Screen.Allocate.route)    { AllocationWorkflowScreen(navController) }
-            composable(Screen.Wealth.route)      { WealthScreen() }
+            composable(Screen.Home.route)          { HomeScreen() }
+            composable(Screen.Add.route)           { AddTransactionScreen(navController) }
+            composable(Screen.Budget.route)        { BudgetScreen(navController) }
+            composable(Screen.Settings.route)      { SettingsScreen(navController) }
+            composable(Screen.ReviewQueue.route)   { ReviewQueueScreen(navController) }
+            composable(Screen.Allocate.route)      { AllocationWorkflowScreen(navController) }
+            composable(Screen.Wealth.route)        { WealthScreen() }
+            composable(Screen.WeeklyReview.route)  { WeeklyReviewScreen(navController) }
             composable(
                 route     = Screen.CategoryDetail.route,
                 arguments = listOf(navArgument("categoryId") { type = NavType.LongType })
@@ -104,7 +107,6 @@ private fun AppBottomBar(navController: NavController, uncategorizedCount: Int) 
             label    = { Text("Settings") },
             colors   = navItemColors()
         )
-        // Centre: elevated Add button with badge for uncategorized imports
         NavigationBarItem(
             selected = current == Screen.Add.route,
             onClick  = {

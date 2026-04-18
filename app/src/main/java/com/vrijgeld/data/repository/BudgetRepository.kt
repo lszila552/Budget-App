@@ -24,4 +24,5 @@ class BudgetRepository @Inject constructor(
     suspend fun upsertAllocation(a: MonthlyAllocation) = allocationDao.upsert(a)
     suspend fun upsertAllAllocations(list: List<MonthlyAllocation>) = allocationDao.upsertAll(list)
     suspend fun updateCategory(category: Category)     = categoryDao.update(category)
+    suspend fun getAllAllocationsOnce()                = allocationDao.getAllOnce()
 }

@@ -8,6 +8,8 @@ import com.vrijgeld.data.model.Category
 import com.vrijgeld.data.model.Transaction
 import com.vrijgeld.data.repository.BudgetRepository
 import com.vrijgeld.data.repository.TransactionRepository
+import com.vrijgeld.domain.MerchantSummary
+import com.vrijgeld.domain.SpendingInsightsEngine
 import com.vrijgeld.domain.previousYearMonths
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -18,10 +20,11 @@ import java.util.Calendar
 import javax.inject.Inject
 
 data class CategoryDetailUiState(
-    val category: Category?                    = null,
-    val transactions: List<Transaction>        = emptyList(),
-    val dailySpend: List<Pair<Int, Long>>      = emptyList(),   // (day, cents)
-    val monthlyComparison: List<Pair<String, Long>> = emptyList() // (label, cents)
+    val category: Category?                         = null,
+    val transactions: List<Transaction>             = emptyList(),
+    val dailySpend: List<Pair<Int, Long>>           = emptyList(),
+    val monthlyComparison: List<Pair<String, Long>> = emptyList(),
+    val topMerchants: List<MerchantSummary>         = emptyList(),
 )
 
 @HiltViewModel
@@ -42,15 +45,13 @@ class CategoryDetailViewModel @Inject constructor(
     private fun load() = viewModelScope.launch {
         val cal        = Calendar.getInstance()
         val yearMonth  = "%04d-%02d".format(cal.get(Calendar.YEAR), cal.get(Calendar.MONTH) + 1)
-        val prevMonths = previousYearMonths(yearMonth, 3)
+        val prevMonths = previousYearMonths(yearMonth, 6)
         val allMonths  = prevMonths + yearMonth
 
         val cat = categoryDao.getAllOnce().find { it.id == categoryId }
         _uiState.value = _uiState.value.copy(category = cat)
 
-        // Reactive: update when transactions change
         transactionRepo.getByCategory(categoryId, yearMonth).collectLatest { txs ->
-            // Daily spend for sparkline
             val dailyMap = txs.filter { it.amount < 0 }
                 .groupBy {
                     val c = Calendar.getInstance().apply { timeInMillis = it.date }
@@ -62,7 +63,7 @@ class CategoryDetailViewModel @Inject constructor(
                 .sortedBy { it.key }
                 .map { it.key to it.value }
 
-            // 3-month comparison (including current)
+            // 6-month comparison
             val historicalTxs = transactionRepo.getByCategoryYearMonths(categoryId, allMonths)
             val monthlyComparison = allMonths.map { ym ->
                 val spent = historicalTxs
@@ -74,10 +75,16 @@ class CategoryDetailViewModel @Inject constructor(
                 ym to spent
             }
 
+            val allTxsForCategory = historicalTxs + txs
+            val topMerchants = SpendingInsightsEngine.topMerchantsForCategory(
+                allTxsForCategory, categoryId, yearMonth
+            )
+
             _uiState.value = _uiState.value.copy(
-                transactions       = txs,
-                dailySpend         = dailySpend,
-                monthlyComparison  = monthlyComparison
+                transactions      = txs,
+                dailySpend        = dailySpend,
+                monthlyComparison = monthlyComparison,
+                topMerchants      = topMerchants
             )
         }
     }

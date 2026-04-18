@@ -24,4 +24,7 @@ interface AllocationDao {
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsertAll(allocations: List<MonthlyAllocation>)
+
+    @Query("SELECT * FROM allocations ORDER BY yearMonth DESC")
+    suspend fun getAllOnce(): List<MonthlyAllocation>
 }

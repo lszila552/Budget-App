@@ -3,8 +3,11 @@ package com.vrijgeld.ui.settings
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -13,6 +16,8 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -25,7 +30,10 @@ import com.vrijgeld.data.repository.KEY_NOTIF_UNUSUAL_TX
 import com.vrijgeld.data.repository.KEY_NOTIF_WEEKLY_PACE
 import com.vrijgeld.data.model.AccountType
 import com.vrijgeld.ui.navigation.Screen
+import com.vrijgeld.ui.theme.ACCENT_NAMES
+import com.vrijgeld.ui.theme.ACCENT_OPTIONS
 import com.vrijgeld.ui.theme.Accent
+import com.vrijgeld.ui.theme.AppTheme
 import com.vrijgeld.ui.theme.Background
 import com.vrijgeld.ui.theme.Surface
 
@@ -35,11 +43,15 @@ fun SettingsScreen(
     navController: NavController,
     viewModel: SettingsViewModel = hiltViewModel()
 ) {
-    val context     = LocalContext.current
-    val accounts    by viewModel.accounts.collectAsState()
-    val importState by viewModel.importState.collectAsState()
-    val notifPrefs  by viewModel.notifPrefs.collectAsState()
-    val categories  by viewModel.categories.collectAsState()
+    val context          = LocalContext.current
+    val accounts         by viewModel.accounts.collectAsState()
+    val importState      by viewModel.importState.collectAsState()
+    val notifPrefs       by viewModel.notifPrefs.collectAsState()
+    val categories       by viewModel.categories.collectAsState()
+    val currentTheme     by viewModel.theme.collectAsState()
+    val currentAccent    by viewModel.accentIndex.collectAsState()
+    val biometricEnabled by viewModel.biometricEnabled.collectAsState()
+    val exportState      by viewModel.exportState.collectAsState()
 
     var selectedAccIdx by remember { mutableIntStateOf(0) }
 
@@ -49,10 +61,28 @@ fun SettingsScreen(
         viewModel.importCamt053(uri, context, accId)
     }
 
+    val exportLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.CreateDocument("application/json")
+    ) { uri ->
+        uri ?: return@rememberLauncherForActivityResult
+        viewModel.exportJson(context, uri)
+    }
+
+    val importJsonLauncher = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+        uri ?: return@rememberLauncherForActivityResult
+        viewModel.importJson(context, uri)
+    }
+
     if (importState is ImportState.Success || importState is ImportState.Error) {
         LaunchedEffect(importState) {
             kotlinx.coroutines.delay(3_000)
             viewModel.resetImportState()
+        }
+    }
+    if (exportState is ImportState.Success || exportState is ImportState.Error) {
+        LaunchedEffect(exportState) {
+            kotlinx.coroutines.delay(3_000)
+            viewModel.resetExportState()
         }
     }
 
@@ -84,6 +114,45 @@ fun SettingsScreen(
                 .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
+            // ── Appearance ──────────────────────────────────────────
+            Text("Appearance", style = MaterialTheme.typography.titleLarge)
+
+            // Theme picker
+            Text("Theme", style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                AppTheme.values().forEach { theme ->
+                    FilterChip(
+                        selected = currentTheme == theme,
+                        onClick  = { viewModel.setTheme(theme) },
+                        label    = { Text(theme.name.lowercase().replaceFirstChar { it.uppercase() }) }
+                    )
+                }
+            }
+
+            // Accent colour picker
+            Text("Accent colour", style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                ACCENT_OPTIONS.forEachIndexed { i, color ->
+                    Box(
+                        modifier = Modifier
+                            .size(36.dp)
+                            .clip(CircleShape)
+                            .background(color)
+                            .clickable { viewModel.setAccent(i) }
+                            .then(
+                                if (i == currentAccent)
+                                    Modifier.border(2.dp, Color.White, CircleShape)
+                                else Modifier
+                            )
+                    )
+                }
+            }
+
+            HorizontalDivider()
+
+            // ── Import ───────────────────────────────────────────────
             Text("Import", style = MaterialTheme.typography.titleLarge)
 
             if (accounts.isNotEmpty()) {
@@ -128,6 +197,32 @@ fun SettingsScreen(
 
             HorizontalDivider()
 
+            // ── Data export / import ─────────────────────────────────
+            Text("Backup & Restore", style = MaterialTheme.typography.titleLarge)
+
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Button(
+                    onClick  = { exportLauncher.launch("vrijgeld_backup.json") },
+                    modifier = Modifier.weight(1f),
+                    enabled  = exportState !is ImportState.Loading
+                ) { Text("Export JSON") }
+
+                OutlinedButton(
+                    onClick  = { importJsonLauncher.launch(arrayOf("application/json", "*/*")) },
+                    modifier = Modifier.weight(1f),
+                    enabled  = exportState !is ImportState.Loading
+                ) { Text("Import JSON") }
+            }
+
+            when (val s = exportState) {
+                is ImportState.Success -> Text("✓ Done (${s.count} transactions)", color = MaterialTheme.colorScheme.primary)
+                is ImportState.Error   -> Text("✗ ${s.message}", color = MaterialTheme.colorScheme.error)
+                else -> {}
+            }
+
+            HorizontalDivider()
+
+            // ── Notifications ────────────────────────────────────────
             Text("Notifications", style = MaterialTheme.typography.titleLarge)
 
             NotifToggleRow(
@@ -159,7 +254,26 @@ fun SettingsScreen(
                 colors   = switchColors
             )
 
-            // Manual balance updates for non-transaction-feed accounts
+            HorizontalDivider()
+
+            // ── Security ─────────────────────────────────────────────
+            Text("Security", style = MaterialTheme.typography.titleLarge)
+
+            Row(
+                Modifier.fillMaxWidth(),
+                verticalAlignment     = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Column {
+                    Text("Biometric lock", style = MaterialTheme.typography.bodyMedium)
+                    Text("Require fingerprint or PIN on open",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+                Switch(checked = biometricEnabled, onCheckedChange = viewModel::setBiometric, colors = switchColors)
+            }
+
+            // ── Manual account balances ──────────────────────────────
             val manualAccounts = accounts.filter {
                 it.type == AccountType.INVESTMENT || it.type == AccountType.PROPERTY
             }
@@ -181,6 +295,7 @@ fun SettingsScreen(
                 }
             }
 
+            // ── Budget defaults ──────────────────────────────────────
             if (categories.isNotEmpty()) {
                 HorizontalDivider()
 
@@ -220,6 +335,8 @@ fun SettingsScreen(
                     }
                 }
             }
+
+            Spacer(Modifier.height(8.dp))
         }
     }
 }
@@ -249,8 +366,8 @@ private fun ManualBalanceRow(
             singleLine      = true,
             modifier        = Modifier.width(110.dp),
             colors          = OutlinedTextFieldDefaults.colors(
-                focusedContainerColor   = com.vrijgeld.ui.theme.Background,
-                unfocusedContainerColor = com.vrijgeld.ui.theme.Background
+                focusedContainerColor   = Background,
+                unfocusedContainerColor = Background
             )
         )
         Spacer(Modifier.width(8.dp))
@@ -281,15 +398,15 @@ private fun BudgetDefaultRow(
                 color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
         OutlinedTextField(
-            value          = text,
-            onValueChange  = { text = it },
-            prefix         = { Text("€") },
+            value           = text,
+            onValueChange   = { text = it },
+            prefix          = { Text("€") },
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-            singleLine     = true,
-            modifier       = Modifier.width(110.dp),
-            colors         = OutlinedTextFieldDefaults.colors(
-                focusedContainerColor   = com.vrijgeld.ui.theme.Background,
-                unfocusedContainerColor = com.vrijgeld.ui.theme.Background
+            singleLine      = true,
+            modifier        = Modifier.width(110.dp),
+            colors          = OutlinedTextFieldDefaults.colors(
+                focusedContainerColor   = Background,
+                unfocusedContainerColor = Background
             )
         )
         Spacer(Modifier.width(8.dp))

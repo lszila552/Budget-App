@@ -9,10 +9,11 @@ import com.vrijgeld.MainActivity
 import javax.inject.Inject
 import javax.inject.Singleton
 
-const val CHANNEL_PACE         = "pace_check"
-const val CHANNEL_BILL         = "bill_due"
-const val CHANNEL_UNUSUAL      = "unusual_tx"
-const val CHANNEL_SUBSCRIPTION = "subscription_renewal"
+const val CHANNEL_PACE          = "pace_check"
+const val CHANNEL_BILL          = "bill_due"
+const val CHANNEL_UNUSUAL       = "unusual_tx"
+const val CHANNEL_SUBSCRIPTION  = "subscription_renewal"
+const val CHANNEL_WEEKLY_REVIEW = "weekly_review"
 
 @Singleton
 class NotificationHelper @Inject constructor(@dagger.hilt.android.qualifiers.ApplicationContext private val context: Context) {
