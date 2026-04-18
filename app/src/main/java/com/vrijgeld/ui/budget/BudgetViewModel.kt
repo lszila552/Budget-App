@@ -81,8 +81,8 @@ class BudgetViewModel @Inject constructor(
                 budgetRepo.getAllocationsForMonth(yearMonth),
                 budgetRepo.getExpenseCategories()
             ) { txs, allocations, cats ->
-                val spent = txs.filter { it.amount < 0 }
-                    .groupBy { it.categoryId }
+                val spent = txs.filter { it.amount < 0 && it.categoryId != null }
+                    .groupBy { it.categoryId!! }
                     .mapValues { (_, ts) -> ts.sumOf { -it.amount } }
 
                 val totalIncome = txs.filter { it.amount > 0 }.sumOf { it.amount }
@@ -115,8 +115,8 @@ class BudgetViewModel @Inject constructor(
         // Last-month spending + spending insights
         viewModelScope.launch {
             val lastMonthTxs = transactionRepo.getForMonthOnce(lastYearMonth)
-            val lastMonthSpent = lastMonthTxs.filter { it.amount < 0 }
-                .groupBy { it.categoryId }
+            val lastMonthSpent = lastMonthTxs.filter { it.amount < 0 && it.categoryId != null }
+                .groupBy { it.categoryId!! }
                 .mapValues { (_, ts) -> ts.sumOf { -it.amount } }
 
             // Collect insights from 6 months of data

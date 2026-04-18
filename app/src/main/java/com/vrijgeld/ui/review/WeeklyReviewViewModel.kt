@@ -50,8 +50,8 @@ class WeeklyReviewViewModel @Inject constructor(
         val allocs    = budgetRepo.getAllocationsForMonthOnce(yearMonth)
         val cats      = budgetRepo.getExpenseCategoriesOnce()
 
-        val spentByCat = txs.filter { it.amount < 0 }
-            .groupBy { it.categoryId }
+        val spentByCat = txs.filter { it.amount < 0 && it.categoryId != null }
+            .groupBy { it.categoryId!! }
             .mapValues { (_, ts) -> ts.sumOf { -it.amount } }
 
         val envelopes = EnvelopeBudgetEngine.build(cats, allocs, spentByCat)
