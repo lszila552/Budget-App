@@ -4,8 +4,8 @@ import android.content.Context
 import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.vrijgeld.data.`import`.CategorizationEngine
-import com.vrijgeld.data.`import`.Camt053Parser
+import com.vrijgeld.data.importer.CategorizationEngine
+import com.vrijgeld.data.importer.Camt053Parser
 import com.vrijgeld.data.model.Account
 import com.vrijgeld.data.model.ImportSource
 import com.vrijgeld.data.model.MonthlyAllocation
