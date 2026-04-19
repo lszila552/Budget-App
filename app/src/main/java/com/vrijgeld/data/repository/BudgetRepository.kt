@@ -15,14 +15,19 @@ class BudgetRepository @Inject constructor(
     fun getExpenseCategories()                         = categoryDao.getExpenseCategories()
     fun getIncomeCategories()                          = categoryDao.getIncomeCategories()
     fun getSinkingFunds()                              = categoryDao.getSinkingFunds()
+    fun getSavingsCategories()                         = categoryDao.getSavingsCategories()
+    fun getSavingsByAccount(accountId: Long)           = categoryDao.getSavingsByAccount(accountId)
     fun getAllocationsForMonth(yearMonth: String)      = allocationDao.getForMonth(yearMonth)
     suspend fun getAllCategoriesOnce()                 = categoryDao.getAllOnce()
     suspend fun getExpenseCategoriesOnce()             = categoryDao.getAllOnce().filter { it.type == com.vrijgeld.data.model.CategoryType.EXPENSE && it.isActive }
+    suspend fun getSavingsCategoriesOnce()             = categoryDao.getAllOnce().filter { it.type == com.vrijgeld.data.model.CategoryType.SAVINGS && it.isActive }
     suspend fun getAllocationsForMonthOnce(ym: String) = allocationDao.getForMonthOnce(ym)
     suspend fun getAllocationsForYearMonths(yms: List<String>) = allocationDao.getForYearMonthsOnce(yms)
     suspend fun getAllocationsForCategory(catId: Long) = allocationDao.getForCategoryOnce(catId)
     suspend fun upsertAllocation(a: MonthlyAllocation) = allocationDao.upsert(a)
     suspend fun upsertAllAllocations(list: List<MonthlyAllocation>) = allocationDao.upsertAll(list)
     suspend fun updateCategory(category: Category)     = categoryDao.update(category)
+    suspend fun insertCategory(category: Category)     = categoryDao.insert(category)
+    suspend fun deleteCategory(category: Category)     = categoryDao.delete(category)
     suspend fun getAllAllocationsOnce()                = allocationDao.getAllOnce()
 }

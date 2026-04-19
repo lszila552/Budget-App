@@ -23,6 +23,7 @@ object AppModule {
         val passphrase = DatabaseKeyManager(context).getOrCreateKey()
         return Room.databaseBuilder(context, VrijGeldDatabase::class.java, "vrijgeld.db")
             .openHelperFactory(SupportOpenHelperFactory(passphrase))
+            .addMigrations(VrijGeldDatabase.MIGRATION_1_2)
             .build()
     }
 

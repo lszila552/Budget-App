@@ -10,6 +10,9 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material3.*
@@ -34,6 +37,7 @@ import com.patrykandpatrick.vico.core.cartesian.data.CartesianChartModelProducer
 import com.patrykandpatrick.vico.core.cartesian.data.lineSeries
 import com.vrijgeld.data.model.Account
 import com.vrijgeld.data.model.AccountType
+import com.vrijgeld.data.model.Category
 import com.vrijgeld.data.model.NetWorthSnapshot
 import com.vrijgeld.ui.theme.Accent
 import com.vrijgeld.ui.theme.AmberWarn
@@ -49,21 +53,23 @@ import com.vrijgeld.ui.theme.TextSecondary
 fun WealthScreen(
     netWorthVm: NetWorthViewModel           = hiltViewModel(),
     forecastVm: CashFlowForecastViewModel   = hiltViewModel(),
-    fireVm: FireViewModel                   = hiltViewModel()
+    fireVm: FireViewModel                   = hiltViewModel(),
+    savingsVm: SavingsViewModel             = hiltViewModel()
 ) {
     var selectedTab by remember { mutableIntStateOf(0) }
-    val tabs = listOf("Net Worth", "Forecast", "FIRE")
+    val tabs = listOf("Net Worth", "Savings", "Forecast", "FIRE")
 
     Column(Modifier.fillMaxSize().background(Background)) {
-        TabRow(selectedTabIndex = selectedTab, containerColor = SurfaceColor) {
+        ScrollableTabRow(selectedTabIndex = selectedTab, containerColor = SurfaceColor, edgePadding = 0.dp) {
             tabs.forEachIndexed { i, title ->
                 Tab(selected = selectedTab == i, onClick = { selectedTab = i }, text = { Text(title) })
             }
         }
         when (selectedTab) {
             0 -> NetWorthTab(netWorthVm)
-            1 -> CashFlowForecastTab(forecastVm)
-            2 -> FireTab(fireVm)
+            1 -> SavingsTab(savingsVm)
+            2 -> CashFlowForecastTab(forecastVm)
+            3 -> FireTab(fireVm)
         }
     }
 }
@@ -233,6 +239,437 @@ private fun AccountType.displayName(): String = when (this) {
     AccountType.INVESTMENT -> "Investments"
     AccountType.PROPERTY   -> "Property"
     AccountType.LIABILITY  -> "Liabilities"
+}
+
+// ─── Savings Tab ──────────────────────────────────────────────────────────────
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun SavingsTab(viewModel: SavingsViewModel) {
+    val state by viewModel.uiState.collectAsState()
+
+    if (state.showAddAccountDialog) {
+        AddAccountDialog(
+            onDismiss = viewModel::dismissAddAccount,
+            onConfirm = { name, type, iban -> viewModel.addAccount(name, type, iban) }
+        )
+    }
+
+    if (state.showAddCategoryDialog || state.editCategory != null) {
+        val accounts = state.accountItems.map { it.account }
+        AddEditCategoryDialog(
+            initial   = state.editCategory,
+            accounts  = accounts,
+            preselect = state.addCategoryForAccountId,
+            onDismiss = viewModel::dismissCategoryDialog,
+            onConfirm = { name, icon, target, accId ->
+                viewModel.saveCategory(name, icon, target, accId)
+            }
+        )
+    }
+
+    LazyColumn(
+        modifier            = Modifier.fillMaxSize().background(Background),
+        contentPadding      = PaddingValues(16.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        // Per-account sections
+        state.accountItems.forEach { item ->
+            item {
+                SavingsAccountCard(
+                    item          = item,
+                    onToggle      = { viewModel.toggleAccount(item.account.id) },
+                    onAddCategory = { viewModel.showAddCategory(item.account.id) },
+                    onEditCat     = viewModel::showEditCategory,
+                    onDeleteCat   = viewModel::deleteCategory,
+                    onDeleteAcc   = { viewModel.deleteAccount(item.account) }
+                )
+            }
+        }
+
+        // Unlinked savings categories (not tied to an account)
+        if (state.unlinkedCategories.isNotEmpty()) {
+            item {
+                Card(
+                    colors   = CardDefaults.cardColors(containerColor = SurfaceVar),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Text("Other savings goals",
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.SemiBold)
+                        state.unlinkedCategories.forEach { catItem ->
+                            SavingsCategoryRow(
+                                item      = catItem,
+                                onEdit    = viewModel::showEditCategory,
+                                onDelete  = viewModel::deleteCategory
+                            )
+                        }
+                    }
+                }
+            }
+        }
+
+        // Add account button
+        item {
+            OutlinedButton(
+                onClick  = viewModel::showAddAccount,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Icon(Icons.Filled.Add, null, Modifier.size(16.dp))
+                Spacer(Modifier.width(6.dp))
+                Text("Add account")
+            }
+        }
+
+        // Add unlinked goal button
+        item {
+            TextButton(
+                onClick  = { viewModel.showAddCategory(null) },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Icon(Icons.Filled.Add, null, Modifier.size(16.dp))
+                Spacer(Modifier.width(6.dp))
+                Text("Add savings goal (no account)")
+            }
+        }
+
+        item { Spacer(Modifier.height(8.dp)) }
+    }
+}
+
+@Composable
+private fun SavingsAccountCard(
+    item: SavingsAccountItem,
+    onToggle: () -> Unit,
+    onAddCategory: () -> Unit,
+    onEditCat: (Category) -> Unit,
+    onDeleteCat: (Category) -> Unit,
+    onDeleteAcc: () -> Unit
+) {
+    val account      = item.account
+    val totalMonthly = item.categories.sumOf { it.thisMonthAllocation }
+
+    Card(
+        colors   = CardDefaults.cardColors(containerColor = SurfaceVar),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Column {
+            // Account header row
+            Row(
+                Modifier
+                    .fillMaxWidth()
+                    .clickable(onClick = onToggle)
+                    .padding(horizontal = 16.dp, vertical = 12.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment     = Alignment.CenterVertically
+            ) {
+                Column(Modifier.weight(1f)) {
+                    Text(account.name,
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.SemiBold)
+                    Text(
+                        account.type.displayName(),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = TextSecondary
+                    )
+                }
+                Row(verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(
+                        "€${"%.0f".format(account.currentBalance / 100.0)}",
+                        fontFamily = JetBrainsMonoFamily,
+                        fontWeight = FontWeight.Medium
+                    )
+                    Icon(
+                        if (item.expanded) Icons.Filled.ExpandLess else Icons.Filled.ExpandMore,
+                        contentDescription = null,
+                        tint = TextSecondary
+                    )
+                }
+            }
+
+            if (item.expanded) {
+                HorizontalDivider(color = SurfaceColor)
+
+                // Bank link row (disabled — integration not built yet)
+                Row(
+                    Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Column {
+                        Text("Bank link", style = MaterialTheme.typography.bodySmall)
+                        Text("Auto-sync coming soon",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = TextSecondary)
+                    }
+                    Button(
+                        onClick  = {},
+                        enabled  = false,
+                        modifier = Modifier.height(32.dp),
+                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 0.dp)
+                    ) { Text("Link to bank", style = MaterialTheme.typography.labelSmall) }
+                }
+
+                // IBAN row
+                if (!account.iban.isNullOrBlank()) {
+                    Text(
+                        account.iban,
+                        style    = MaterialTheme.typography.labelSmall,
+                        color    = TextSecondary,
+                        fontFamily = JetBrainsMonoFamily,
+                        modifier = Modifier.padding(horizontal = 16.dp).padding(bottom = 4.dp)
+                    )
+                }
+
+                // Savings categories
+                if (item.categories.isNotEmpty()) {
+                    HorizontalDivider(color = SurfaceColor)
+                    item.categories.forEach { catItem ->
+                        SavingsCategoryRow(catItem, onEditCat, onDeleteCat)
+                    }
+                }
+
+                // Monthly total for this account
+                if (totalMonthly > 0) {
+                    HorizontalDivider(color = SurfaceColor)
+                    Row(
+                        Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 8.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text("This month",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = TextSecondary)
+                        Text(
+                            "+€${"%.0f".format(totalMonthly / 100.0)}",
+                            fontFamily = JetBrainsMonoFamily,
+                            fontSize   = 13.sp,
+                            color      = Accent
+                        )
+                    }
+                }
+
+                // Action row
+                HorizontalDivider(color = SurfaceColor)
+                Row(
+                    Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 8.dp, vertical = 4.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    TextButton(onClick = onAddCategory) {
+                        Icon(Icons.Filled.Add, null, Modifier.size(14.dp))
+                        Spacer(Modifier.width(4.dp))
+                        Text("Add goal", style = MaterialTheme.typography.labelSmall)
+                    }
+                    IconButton(onClick = onDeleteAcc, modifier = Modifier.size(36.dp)) {
+                        Icon(Icons.Filled.Delete, null,
+                            tint = TextSecondary,
+                            modifier = Modifier.size(18.dp))
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun SavingsCategoryRow(
+    item: SavingsCategoryItem,
+    onEdit: (Category) -> Unit,
+    onDelete: (Category) -> Unit
+) {
+    val cat = item.category
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .padding(start = 16.dp, end = 8.dp, top = 8.dp, bottom = 8.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment     = Alignment.CenterVertically
+    ) {
+        Text(cat.icon, fontSize = 18.sp)
+        Spacer(Modifier.width(8.dp))
+        Column(Modifier.weight(1f)) {
+            Text(cat.name, style = MaterialTheme.typography.bodySmall)
+            if ((cat.monthlyBudget ?: 0L) > 0) {
+                Text(
+                    "€${"%.0f".format((cat.monthlyBudget ?: 0L) / 100.0)}/mo target",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = TextSecondary
+                )
+            }
+        }
+        if (item.thisMonthAllocation > 0) {
+            Text(
+                "+€${"%.0f".format(item.thisMonthAllocation / 100.0)}",
+                fontFamily = JetBrainsMonoFamily,
+                fontSize   = 13.sp,
+                color      = Accent
+            )
+        }
+        Spacer(Modifier.width(4.dp))
+        IconButton(onClick = { onEdit(cat) }, modifier = Modifier.size(32.dp)) {
+            Icon(Icons.Filled.Edit, null,
+                tint = TextSecondary,
+                modifier = Modifier.size(16.dp))
+        }
+        IconButton(onClick = { onDelete(cat) }, modifier = Modifier.size(32.dp)) {
+            Icon(Icons.Filled.Delete, null,
+                tint = TextSecondary,
+                modifier = Modifier.size(16.dp))
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun AddAccountDialog(
+    onDismiss: () -> Unit,
+    onConfirm: (name: String, type: AccountType, iban: String) -> Unit
+) {
+    var name by remember { mutableStateOf("") }
+    var iban by remember { mutableStateOf("") }
+    var selectedType by remember { mutableStateOf(AccountType.SAVINGS) }
+    val savingsTypes = listOf(AccountType.SAVINGS, AccountType.INVESTMENT, AccountType.PROPERTY)
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Add account") },
+        text  = {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                OutlinedTextField(
+                    value         = name,
+                    onValueChange = { name = it },
+                    label         = { Text("Account name") },
+                    singleLine    = true,
+                    modifier      = Modifier.fillMaxWidth()
+                )
+                OutlinedTextField(
+                    value         = iban,
+                    onValueChange = { iban = it },
+                    label         = { Text("IBAN (optional)") },
+                    singleLine    = true,
+                    modifier      = Modifier.fillMaxWidth()
+                )
+                Text("Type", style = MaterialTheme.typography.labelMedium, color = TextSecondary)
+                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    savingsTypes.forEach { type ->
+                        FilterChip(
+                            selected = selectedType == type,
+                            onClick  = { selectedType = type },
+                            label    = { Text(type.displayName(), style = MaterialTheme.typography.labelSmall) }
+                        )
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(
+                onClick  = { if (name.isNotBlank()) onConfirm(name, selectedType, iban) },
+                enabled  = name.isNotBlank()
+            ) { Text("Add") }
+        },
+        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } }
+    )
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun AddEditCategoryDialog(
+    initial: Category?,
+    accounts: List<Account>,
+    preselect: Long?,
+    onDismiss: () -> Unit,
+    onConfirm: (name: String, icon: String, monthlyTarget: String, accountId: Long?) -> Unit
+) {
+    var name     by remember { mutableStateOf(initial?.name ?: "") }
+    var icon     by remember { mutableStateOf(initial?.icon ?: "💰") }
+    var target   by remember {
+        mutableStateOf(
+            if ((initial?.monthlyBudget ?: 0L) > 0)
+                "%.2f".format((initial?.monthlyBudget ?: 0L) / 100.0)
+            else ""
+        )
+    }
+    var selectedAccountId by remember {
+        mutableStateOf(initial?.accountId ?: preselect)
+    }
+    var accDropExpanded by remember { mutableStateOf(false) }
+    val selectedAcc = accounts.find { it.id == selectedAccountId }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(if (initial == null) "Add savings goal" else "Edit savings goal") },
+        text  = {
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    OutlinedTextField(
+                        value         = icon,
+                        onValueChange = { icon = it },
+                        label         = { Text("Icon") },
+                        singleLine    = true,
+                        modifier      = Modifier.width(80.dp)
+                    )
+                    OutlinedTextField(
+                        value         = name,
+                        onValueChange = { name = it },
+                        label         = { Text("Name") },
+                        singleLine    = true,
+                        modifier      = Modifier.weight(1f)
+                    )
+                }
+                OutlinedTextField(
+                    value           = target,
+                    onValueChange   = { target = it },
+                    label           = { Text("Monthly target (€)") },
+                    prefix          = { Text("€") },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                    singleLine      = true,
+                    modifier        = Modifier.fillMaxWidth()
+                )
+                ExposedDropdownMenuBox(
+                    expanded        = accDropExpanded,
+                    onExpandedChange = { accDropExpanded = it }
+                ) {
+                    OutlinedTextField(
+                        value         = selectedAcc?.name ?: "No account",
+                        onValueChange = {},
+                        readOnly      = true,
+                        label         = { Text("Account") },
+                        trailingIcon  = { ExposedDropdownMenuDefaults.TrailingIcon(accDropExpanded) },
+                        modifier      = Modifier.menuAnchor().fillMaxWidth()
+                    )
+                    ExposedDropdownMenu(
+                        expanded        = accDropExpanded,
+                        onDismissRequest = { accDropExpanded = false }
+                    ) {
+                        DropdownMenuItem(
+                            text    = { Text("No account") },
+                            onClick = { selectedAccountId = null; accDropExpanded = false }
+                        )
+                        accounts.forEach { acc ->
+                            DropdownMenuItem(
+                                text    = { Text(acc.name) },
+                                onClick = { selectedAccountId = acc.id; accDropExpanded = false }
+                            )
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(
+                onClick  = { if (name.isNotBlank()) onConfirm(name, icon, target, selectedAccountId) },
+                enabled  = name.isNotBlank()
+            ) { Text(if (initial == null) "Add" else "Save") }
+        },
+        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } }
+    )
 }
 
 // ─── Cash Flow Forecast Tab ───────────────────────────────────────────────────

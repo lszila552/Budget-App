@@ -22,9 +22,21 @@ interface CategoryDao {
     @Query("SELECT * FROM categories WHERE isSinkingFund = 1 AND isActive = 1 ORDER BY sortOrder")
     fun getSinkingFunds(): Flow<List<Category>>
 
+    @Query("SELECT * FROM categories WHERE type = 'SAVINGS' AND isActive = 1 ORDER BY sortOrder")
+    fun getSavingsCategories(): Flow<List<Category>>
+
+    @Query("SELECT * FROM categories WHERE type = 'SAVINGS' AND isActive = 1 AND accountId = :accountId ORDER BY sortOrder")
+    fun getSavingsByAccount(accountId: Long): Flow<List<Category>>
+
     @Insert(onConflict = OnConflictStrategy.IGNORE)
     suspend fun insertAll(categories: List<Category>): List<Long>
 
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insert(category: Category): Long
+
     @Update
     suspend fun update(category: Category)
+
+    @Delete
+    suspend fun delete(category: Category)
 }

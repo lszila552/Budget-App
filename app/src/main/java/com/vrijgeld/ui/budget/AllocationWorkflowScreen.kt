@@ -105,11 +105,40 @@ fun AllocationWorkflowScreen(
                 contentPadding      = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                itemsIndexed(state.drafts, key = { _, d -> d.categoryId }) { _, draft ->
-                    AllocationRow(
-                        draft    = draft,
-                        onUpdate = { viewModel.updateDraft(draft.categoryId, it) }
-                    )
+                // Expense categories
+                if (state.expenseDrafts.isNotEmpty()) {
+                    item {
+                        Text(
+                            "Expenses",
+                            style = MaterialTheme.typography.titleSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(top = 4.dp, bottom = 2.dp)
+                        )
+                    }
+                    itemsIndexed(state.expenseDrafts, key = { _, d -> d.categoryId }) { _, draft ->
+                        AllocationRow(
+                            draft    = draft,
+                            onUpdate = { viewModel.updateDraft(draft.categoryId, it) }
+                        )
+                    }
+                }
+
+                // Savings categories
+                if (state.savingsDrafts.isNotEmpty()) {
+                    item {
+                        Text(
+                            "Savings",
+                            style = MaterialTheme.typography.titleSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(top = 12.dp, bottom = 2.dp)
+                        )
+                    }
+                    itemsIndexed(state.savingsDrafts, key = { _, d -> d.categoryId }) { _, draft ->
+                        AllocationRow(
+                            draft    = draft,
+                            onUpdate = { viewModel.updateDraft(draft.categoryId, it) }
+                        )
+                    }
                 }
 
                 item { Spacer(Modifier.height(16.dp)) }
