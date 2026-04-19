@@ -4,6 +4,13 @@ import com.vrijgeld.data.model.*
 
 data class RuleSpec(val field: RuleField, val matchType: MatchType, val pattern: String, val categoryName: String)
 
+val DEFAULT_ACCOUNT = Account(
+    name           = "Betaalrekening",
+    type           = AccountType.CHECKING,
+    currentBalance = 0L,
+    sortOrder      = 0
+)
+
 val DEFAULT_CATEGORIES = listOf(
     Category(name = "Groceries",         icon = "🛒", type = CategoryType.EXPENSE, monthlyBudget = 35000,  sortOrder = 0),
     Category(name = "Dining Out",        icon = "🍽", type = CategoryType.EXPENSE, monthlyBudget = 20000,  sortOrder = 1),

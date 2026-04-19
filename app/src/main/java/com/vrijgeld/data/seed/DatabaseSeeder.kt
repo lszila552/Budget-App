@@ -1,5 +1,6 @@
 package com.vrijgeld.data.seed
 
+import com.vrijgeld.data.db.dao.AccountDao
 import com.vrijgeld.data.db.dao.CategoryDao
 import com.vrijgeld.data.db.dao.RuleDao
 import com.vrijgeld.data.db.dao.SettingDao
@@ -12,9 +13,14 @@ import javax.inject.Singleton
 class DatabaseSeeder @Inject constructor(
     private val categoryDao: CategoryDao,
     private val ruleDao: RuleDao,
-    private val settingDao: SettingDao
+    private val settingDao: SettingDao,
+    private val accountDao: AccountDao,
 ) {
     suspend fun seedIfNeeded() {
+        if (accountDao.getActiveOnce().isEmpty()) {
+            accountDao.insert(DEFAULT_ACCOUNT)
+        }
+
         if (settingDao.get("seeded")?.value == "true") return
 
         categoryDao.insertAll(DEFAULT_CATEGORIES)
