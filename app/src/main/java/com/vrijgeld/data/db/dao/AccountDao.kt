@@ -27,4 +27,7 @@ interface AccountDao {
 
     @Update
     suspend fun update(account: Account)
+
+    @Delete
+    suspend fun delete(account: Account)
 }

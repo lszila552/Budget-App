@@ -43,15 +43,16 @@ fun SettingsScreen(
     navController: NavController,
     viewModel: SettingsViewModel = hiltViewModel()
 ) {
-    val context          = LocalContext.current
-    val accounts         by viewModel.accounts.collectAsState()
-    val importState      by viewModel.importState.collectAsState()
-    val notifPrefs       by viewModel.notifPrefs.collectAsState()
-    val categories       by viewModel.categories.collectAsState()
-    val currentTheme     by viewModel.theme.collectAsState()
-    val currentAccent    by viewModel.accentIndex.collectAsState()
-    val biometricEnabled by viewModel.biometricEnabled.collectAsState()
-    val exportState      by viewModel.exportState.collectAsState()
+    val context           = LocalContext.current
+    val accounts          by viewModel.accounts.collectAsState()
+    val importState       by viewModel.importState.collectAsState()
+    val notifPrefs        by viewModel.notifPrefs.collectAsState()
+    val categories        by viewModel.categories.collectAsState()
+    val savingsCategories by viewModel.savingsCategories.collectAsState()
+    val currentTheme      by viewModel.theme.collectAsState()
+    val currentAccent     by viewModel.accentIndex.collectAsState()
+    val biometricEnabled  by viewModel.biometricEnabled.collectAsState()
+    val exportState       by viewModel.exportState.collectAsState()
 
     var selectedAccIdx by remember { mutableIntStateOf(0) }
 
@@ -347,6 +348,26 @@ fun SettingsScreen(
                             onSave  = { viewModel.updateSinkingFundTarget(cat, it) }
                         )
                     }
+                }
+            }
+
+            // ── Savings categories ───────────────────────────────────
+            if (savingsCategories.isNotEmpty()) {
+                HorizontalDivider()
+                Text("Savings Goals", style = MaterialTheme.typography.titleLarge)
+                Text(
+                    "Monthly allocation targets for your savings goals. Manage goals in Wealth → Savings.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                savingsCategories.forEach { cat ->
+                    BudgetDefaultRow(
+                        icon   = cat.icon,
+                        name   = cat.name,
+                        amount = cat.monthlyBudget,
+                        label  = "Monthly target",
+                        onSave = { viewModel.updateSavingsCategoryTarget(cat, it) }
+                    )
                 }
             }
 

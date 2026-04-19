@@ -85,9 +85,17 @@ class SettingsViewModel @Inject constructor(
     private val _exportState = MutableStateFlow<ImportState>(ImportState.Idle)
     val exportState = _exportState.asStateFlow()
 
+    private val _savingsCategories = MutableStateFlow<List<Category>>(emptyList())
+    val savingsCategories = _savingsCategories.asStateFlow()
+
     init {
         viewModelScope.launch {
             _categories.value = budgetRepo.getExpenseCategoriesOnce()
+        }
+        viewModelScope.launch {
+            budgetRepo.getSavingsCategories().collect {
+                _savingsCategories.value = it
+            }
         }
         viewModelScope.launch {
             _notifPrefs.value = NotifPrefs(
@@ -172,9 +180,17 @@ class SettingsViewModel @Inject constructor(
     }
 
     private fun isCsvUri(uri: Uri, context: Context): Boolean {
-        val mime    = context.contentResolver.getType(uri) ?: ""
-        val segment = uri.lastPathSegment?.lowercase() ?: uri.toString().lowercase()
-        return mime.contains("csv") || segment.endsWith(".csv")
+        val mime = context.contentResolver.getType(uri) ?: ""
+        if (mime.contains("csv")) return true
+        // Downloads content URIs use opaque integer IDs — query the actual filename
+        val displayName = runCatching {
+            context.contentResolver.query(
+                uri, arrayOf(android.provider.OpenableColumns.DISPLAY_NAME), null, null, null
+            )?.use { cursor ->
+                if (cursor.moveToFirst()) cursor.getString(0).lowercase() else null
+            }
+        }.getOrNull() ?: uri.lastPathSegment?.lowercase() ?: uri.toString().lowercase()
+        return displayName.endsWith(".csv")
     }
 
     fun resetImportState() { _importState.value = ImportState.Idle }
@@ -196,6 +212,15 @@ class SettingsViewModel @Inject constructor(
         val updated = category.copy(sinkingFundTarget = cents)
         budgetRepo.updateCategory(updated)
         _categories.value = budgetRepo.getExpenseCategoriesOnce()
+    }
+
+    fun updateSavingsCategoryTarget(category: Category, amountText: String) = viewModelScope.launch {
+        val cents = amountText.toDoubleOrNull()?.times(100)?.toLong()
+        budgetRepo.updateCategory(category.copy(monthlyBudget = cents))
+    }
+
+    fun deleteSavingsCategory(category: Category) = viewModelScope.launch {
+        budgetRepo.deleteCategory(category)
     }
 
     fun exportJson(context: Context, uri: Uri) = viewModelScope.launch {

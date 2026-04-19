@@ -19,11 +19,13 @@ class DatabaseSeeder @Inject constructor(
     suspend fun seedIfNeeded() {
         if (accountDao.getActiveOnce().isEmpty()) {
             accountDao.insert(DEFAULT_ACCOUNT)
+            accountDao.insert(DEFAULT_SAVINGS_ACCOUNT)
         }
 
         if (settingDao.get("seeded")?.value == "true") return
 
         categoryDao.insertAll(DEFAULT_CATEGORIES)
+        categoryDao.insertAll(DEFAULT_SAVINGS_CATEGORIES)
         val nameToId = categoryDao.getAllOnce().associate { it.name to it.id }
 
         val rules = DUTCH_RULE_SPECS.mapNotNull { spec ->

@@ -14,7 +14,8 @@ data class Category(
     val sinkingFundTarget: Long? = null,
     val rollover: Boolean = false,
     val sortOrder: Int = 0,
-    val isActive: Boolean = true
+    val isActive: Boolean = true,
+    val accountId: Long? = null
 )
 
-enum class CategoryType { EXPENSE, INCOME }
+enum class CategoryType { EXPENSE, INCOME, SAVINGS }

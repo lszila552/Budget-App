@@ -19,6 +19,7 @@ data class AllocationDraft(
     val name: String,
     val icon: String,
     val isSinkingFund: Boolean,
+    val isSavings: Boolean = false,
     val defaultBudget: Long,
     var amountText: String = ""
 )
@@ -29,6 +30,8 @@ data class AllocationWorkflowState(
     val applied: Boolean                 = false,
     val yearMonth: String                = ""
 ) {
+    val expenseDrafts: List<AllocationDraft> get() = drafts.filter { !it.isSavings }
+    val savingsDrafts: List<AllocationDraft> get() = drafts.filter { it.isSavings }
     val totalAllocated: Long get() = drafts.sumOf { it.amountText.toDoubleOrNull()?.times(100)?.toLong() ?: 0L }
     val unallocated: Long    get() = totalIncome - totalAllocated
 }
@@ -58,23 +61,28 @@ class AllocationViewModel @Inject constructor(
         val settingsIncome = settingsRepo.getMonthlyIncome()
         val totalIncome = (if (rawIncome > 0L) rawIncome else settingsIncome) - holding
 
-        val cats     = budgetRepo.getExpenseCategoriesOnce()
-        val lastAlloc = budgetRepo.getAllocationsForMonthOnce(lastMonth).associateBy { it.categoryId }
-        val thisAlloc = budgetRepo.getAllocationsForMonthOnce(yearMonth).associateBy { it.categoryId }
+        val expenseCats = budgetRepo.getExpenseCategoriesOnce()
+        val savingsCats = budgetRepo.getSavingsCategoriesOnce()
+        val lastAlloc   = budgetRepo.getAllocationsForMonthOnce(lastMonth).associateBy { it.categoryId }
+        val thisAlloc   = budgetRepo.getAllocationsForMonthOnce(yearMonth).associateBy { it.categoryId }
 
-        val drafts = cats.map { cat ->
-            val existing    = thisAlloc[cat.id]
-            val lastAmount  = lastAlloc[cat.id]?.allocated
-            val defaultAmt  = existing?.allocated ?: lastAmount ?: cat.monthlyBudget ?: 0L
-            AllocationDraft(
-                categoryId   = cat.id,
-                name         = cat.name,
-                icon         = cat.icon,
+        fun makeDraft(cat: com.vrijgeld.data.model.Category, isSavings: Boolean): AllocationDraft {
+            val existing   = thisAlloc[cat.id]
+            val lastAmount = lastAlloc[cat.id]?.allocated
+            val defaultAmt = existing?.allocated ?: lastAmount ?: cat.monthlyBudget ?: 0L
+            return AllocationDraft(
+                categoryId    = cat.id,
+                name          = cat.name,
+                icon          = cat.icon,
                 isSinkingFund = cat.isSinkingFund,
+                isSavings     = isSavings,
                 defaultBudget = cat.monthlyBudget ?: 0L,
-                amountText   = if (defaultAmt > 0) "%.2f".format(defaultAmt / 100.0) else ""
+                amountText    = if (defaultAmt > 0) "%.2f".format(defaultAmt / 100.0) else ""
             )
         }
+
+        val drafts = expenseCats.map { makeDraft(it, false) } +
+                     savingsCats.map { makeDraft(it, true) }
 
         _state.value = AllocationWorkflowState(
             totalIncome = totalIncome,

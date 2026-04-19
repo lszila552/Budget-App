@@ -3,6 +3,8 @@ package com.vrijgeld.data.db
 import androidx.room.Database
 import androidx.room.RoomDatabase
 import androidx.room.TypeConverters
+import androidx.room.migration.Migration
+import androidx.sqlite.db.SupportSQLiteDatabase
 import com.vrijgeld.data.db.dao.*
 import com.vrijgeld.data.model.*
 
@@ -17,7 +19,7 @@ import com.vrijgeld.data.model.*
         AppSetting::class,
         DetectedSubscription::class,
     ],
-    version = 1,
+    version = 2,
     exportSchema = true
 )
 @TypeConverters(Converters::class)
@@ -30,4 +32,12 @@ abstract class VrijGeldDatabase : RoomDatabase() {
     abstract fun netWorthSnapshotDao(): NetWorthSnapshotDao
     abstract fun detectedSubscriptionDao(): DetectedSubscriptionDao
     abstract fun settingDao(): SettingDao
+
+    companion object {
+        val MIGRATION_1_2 = object : Migration(1, 2) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE categories ADD COLUMN accountId INTEGER")
+            }
+        }
+    }
 }

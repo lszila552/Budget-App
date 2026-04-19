@@ -11,6 +11,19 @@ val DEFAULT_ACCOUNT = Account(
     sortOrder      = 0
 )
 
+val DEFAULT_SAVINGS_ACCOUNT = Account(
+    name           = "Spaarrekening",
+    type           = AccountType.SAVINGS,
+    currentBalance = 0L,
+    sortOrder      = 1
+)
+
+val DEFAULT_SAVINGS_CATEGORIES = listOf(
+    Category(name = "Emergency Fund",  icon = "🛡", type = CategoryType.SAVINGS, monthlyBudget = 20000, sortOrder = 0),
+    Category(name = "Vacation",        icon = "✈️", type = CategoryType.SAVINGS, monthlyBudget = 10000, sortOrder = 1),
+    Category(name = "Investments",     icon = "📈", type = CategoryType.SAVINGS, monthlyBudget = 50000, sortOrder = 2),
+)
+
 val DEFAULT_CATEGORIES = listOf(
     Category(name = "Groceries",         icon = "🛒", type = CategoryType.EXPENSE, monthlyBudget = 35000,  sortOrder = 0),
     Category(name = "Dining Out",        icon = "🍽", type = CategoryType.EXPENSE, monthlyBudget = 20000,  sortOrder = 1),
