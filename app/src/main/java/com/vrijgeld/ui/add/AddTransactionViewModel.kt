@@ -52,11 +52,11 @@ class AddTransactionViewModel @Inject constructor(
         allIncomeCategories,
         recentCategoryIds,
         _uiState
-    ) { expCats, incCats, recentIds, state ->
+    ) { expCats: List<Category>, incCats: List<Category>, recentIds: List<Long>, state: AddUiState ->
         val pool = if (state.isExpense) expCats else incCats
-        val recentSet = recentIds.toLinkedHashSet()
-        val recent   = recentSet.mapNotNull { id -> pool.find { it.id == id } }
-        val rest     = pool.filter { it.id !in recentSet }
+        val recentIdSet: Set<Long> = recentIds.toHashSet()
+        val recent = recentIdSet.mapNotNull { id -> pool.find { cat -> cat.id == id } }
+        val rest   = pool.filter { cat -> cat.id !in recentIdSet }
         recent + rest
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList<Category>())
 

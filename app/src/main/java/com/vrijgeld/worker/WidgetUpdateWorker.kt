@@ -62,7 +62,7 @@ class WidgetUpdateWorker(
             cat.id to expenses.filter { it.categoryId == cat.id }.sumOf { -it.amount }
         }
         val variableSpent = expenses
-            .filter { it.categoryId == null || (it.categoryId !in fixedIds && it.categoryId !in sinkingIds) }
+            .filter { tx -> val cid = tx.categoryId; cid == null || (cid !in fixedIds && cid !in sinkingIds) }
             .sumOf { -it.amount }
 
         val sts = calc.calculate(
