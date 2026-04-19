@@ -136,16 +136,14 @@ class SettingsViewModel @Inject constructor(
         _importState.value = ImportState.Loading
         runCatching {
             val allAccounts = accountRepo.getActiveOnce()
-            val isCsv = isCsvUri(uri, context)
 
-            val parsed = if (isCsv) {
-                val lines = withContext(Dispatchers.IO) {
-                    context.contentResolver.openInputStream(uri)
-                        ?.bufferedReader()?.readLines() ?: emptyList()
-                }
-                CsvParser().parse(lines)
-            } else {
-                withContext(Dispatchers.IO) {
+            val parsed = withContext(Dispatchers.IO) {
+                val lines = context.contentResolver.openInputStream(uri)
+                    ?.bufferedReader()?.readLines() ?: emptyList()
+                val csvResult = CsvParser().parse(lines)
+                if (csvResult.isNotEmpty()) {
+                    csvResult
+                } else {
                     context.contentResolver.openInputStream(uri)
                         ?.use { Camt053Parser().parse(it) } ?: emptyList()
                 }
@@ -177,20 +175,6 @@ class SettingsViewModel @Inject constructor(
             }
             _importState.value = ImportState.Success(count, categorized)
         }.onFailure { _importState.value = ImportState.Error(it.message ?: "Import failed") }
-    }
-
-    private fun isCsvUri(uri: Uri, context: Context): Boolean {
-        val mime = context.contentResolver.getType(uri) ?: ""
-        if (mime.contains("csv")) return true
-        // Downloads content URIs use opaque integer IDs — query the actual filename
-        val displayName = runCatching {
-            context.contentResolver.query(
-                uri, arrayOf(android.provider.OpenableColumns.DISPLAY_NAME), null, null, null
-            )?.use { cursor ->
-                if (cursor.moveToFirst()) cursor.getString(0).lowercase() else null
-            }
-        }.getOrNull() ?: uri.lastPathSegment?.lowercase() ?: uri.toString().lowercase()
-        return displayName.endsWith(".csv")
     }
 
     fun resetImportState() { _importState.value = ImportState.Idle }
