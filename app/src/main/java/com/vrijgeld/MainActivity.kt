@@ -43,15 +43,10 @@ class MainActivity : AppCompatActivity() {
         authenticate(prefs.biometricEnabled)
 
         setContent {
-            val theme       = remember { mutableStateOf(prefs.theme) }
-            val accentIndex = remember { mutableIntStateOf(prefs.accentIndex) }
+            val theme       by AppPreferences.themeFlow.collectAsState()
+            val accentIndex by AppPreferences.accentFlow.collectAsState()
 
-            // Refresh from prefs whenever we resume (theme/accent may change in Settings)
-            DisposableEffect(Unit) {
-                onDispose {}
-            }
-
-            VrijGeldTheme(appTheme = theme.value, accentIndex = accentIndex.value) {
+            VrijGeldTheme(appTheme = theme, accentIndex = accentIndex) {
                 AnimatedContent(targetState = isAuthenticated, label = "auth") { authenticated ->
                     if (!authenticated) {
                         LockScreen(error = authError, onRetry = { authenticate(prefs.biometricEnabled) })
@@ -63,11 +58,6 @@ class MainActivity : AppCompatActivity() {
                                 onboardingDone = true
                             })
                         } else {
-                            // Re-read prefs so Settings changes take effect live
-                            LaunchedEffect(Unit) {
-                                theme.value       = prefs.theme
-                                accentIndex.value = prefs.accentIndex
-                            }
                             NavGraph()
                         }
                     }
