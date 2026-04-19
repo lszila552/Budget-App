@@ -63,7 +63,7 @@ class AbnAmroCsvParser : BankCsvParser {
             val omschr = cols.getOrElse(colOmschr) { "" }
 
             val dateMs = runCatching { dateFmt.parse(date)?.time ?: 0L }.getOrDefault(0L)
-            val amountDouble = bedrag.replace(",", ".").toDoubleOrNull() ?: continue
+            val amountDouble = parseEuropeanAmount(bedrag) ?: continue
             val cents = (amountDouble * 100).toLong()
 
             val description = omschr.ifEmpty { "ABN AMRO transaction" }
@@ -122,7 +122,7 @@ class RabobankCsvParser : BankCsvParser {
             val o3     = if (colOmschr3 >= 0) cols.getOrElse(colOmschr3) { "" } else ""
 
             val dateMs = runCatching { dateFmt.parse(datum)?.time ?: 0L }.getOrDefault(0L)
-            val amountDouble = bedrag.replace(",", ".").toDoubleOrNull() ?: continue
+            val amountDouble = parseEuropeanAmount(bedrag) ?: continue
             val cents = (amountDouble * 100).toLong()
 
             val description = listOf(o1, o2, o3).filter { it.isNotBlank() }.joinToString(" ").ifEmpty { naam }
