@@ -39,13 +39,18 @@ fun AddTransactionScreen(
     val categories  by viewModel.orderedCategories.collectAsState()
 
     var showNote by remember { mutableStateOf(false) }
+    val snackbarHostState = remember { SnackbarHostState() }
 
     LaunchedEffect(state.saved) {
-        if (state.saved) navController.popBackStack()
+        if (state.saved) {
+            snackbarHostState.showSnackbar("Transaction saved")
+            navController.popBackStack()
+        }
     }
 
     Scaffold(
         containerColor = Background,
+        snackbarHost   = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
                 title = { Text("Add Transaction") },

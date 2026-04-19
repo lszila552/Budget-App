@@ -15,7 +15,8 @@ data class ParsedTransaction(
     val merchantName: String?,
     val counterpartyIban: String?,
     val importHash: String,
-    val importSource: ImportSource = ImportSource.CAMT053
+    val importSource: ImportSource = ImportSource.CAMT053,
+    val ownIban: String? = null
 )
 
 class Camt053Parser {

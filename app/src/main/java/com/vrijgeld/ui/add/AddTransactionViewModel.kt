@@ -112,7 +112,7 @@ class AddTransactionViewModel @Inject constructor(
                 isReviewed          = true
             )
         )
-        _uiState.value = AddUiState()
+        _uiState.value = AddUiState(saved = true)
     }
 
     private fun applyKey(current: String, key: String): String = when (key) {
