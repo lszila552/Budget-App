@@ -4,8 +4,9 @@ import android.content.Context
 import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.vrijgeld.data.importer.CategorizationEngine
 import com.vrijgeld.data.importer.Camt053Parser
+import com.vrijgeld.data.importer.CategorizationEngine
+import com.vrijgeld.data.importer.CsvParser
 import com.vrijgeld.data.model.Account
 import com.vrijgeld.data.model.ImportSource
 import com.vrijgeld.data.model.MonthlyAllocation
@@ -37,7 +38,7 @@ import javax.inject.Inject
 sealed class ImportState {
     object Idle : ImportState()
     object Loading : ImportState()
-    data class Success(val count: Int) : ImportState()
+    data class Success(val count: Int, val categorized: Int = 0) : ImportState()
     data class Error(val message: String) : ImportState()
 }
 
@@ -123,25 +124,57 @@ class SettingsViewModel @Inject constructor(
         )
     }
 
-    fun importCamt053(uri: Uri, context: Context, accountId: Long) = viewModelScope.launch {
+    fun importFile(uri: Uri, context: Context, fallbackAccountId: Long) = viewModelScope.launch {
         _importState.value = ImportState.Loading
         runCatching {
-            val parsed = context.contentResolver.openInputStream(uri)
-                ?.use { Camt053Parser().parse(it) } ?: emptyList()
+            val allAccounts = accountRepo.getActiveOnce()
+            val isCsv = isCsvUri(uri, context)
+
+            val parsed = if (isCsv) {
+                val lines = withContext(Dispatchers.IO) {
+                    context.contentResolver.openInputStream(uri)
+                        ?.bufferedReader()?.readLines() ?: emptyList()
+                }
+                CsvParser().parse(lines)
+            } else {
+                withContext(Dispatchers.IO) {
+                    context.contentResolver.openInputStream(uri)
+                        ?.use { Camt053Parser().parse(it) } ?: emptyList()
+                }
+            }
 
             var count = 0
+            var categorized = 0
             parsed.forEach { p ->
                 if (transactionRepo.getByImportHash(p.importHash) != null) return@forEach
-                val stub = Transaction(accountId = accountId, amount = p.amountCents,
-                    date = p.dateMillis, description = p.description,
-                    merchantName = p.merchantName, counterpartyIban = p.counterpartyIban)
+                val accountId = p.ownIban
+                    ?.let { iban -> allAccounts.find { it.iban == iban }?.id }
+                    ?: fallbackAccountId
+                val stub = Transaction(
+                    accountId        = accountId,
+                    amount           = p.amountCents,
+                    date             = p.dateMillis,
+                    description      = p.description,
+                    merchantName     = p.merchantName,
+                    counterpartyIban = p.counterpartyIban
+                )
                 val catId = engine.categorize(stub)
-                transactionRepo.insert(stub.copy(categoryId = catId,
-                    importSource = ImportSource.CAMT053, importHash = p.importHash))
+                if (catId != null) categorized++
+                transactionRepo.insert(stub.copy(
+                    categoryId   = catId,
+                    importSource = p.importSource,
+                    importHash   = p.importHash
+                ))
                 count++
             }
-            _importState.value = ImportState.Success(count)
+            _importState.value = ImportState.Success(count, categorized)
         }.onFailure { _importState.value = ImportState.Error(it.message ?: "Import failed") }
+    }
+
+    private fun isCsvUri(uri: Uri, context: Context): Boolean {
+        val mime    = context.contentResolver.getType(uri) ?: ""
+        val segment = uri.lastPathSegment?.lowercase() ?: uri.toString().lowercase()
+        return mime.contains("csv") || segment.endsWith(".csv")
     }
 
     fun resetImportState() { _importState.value = ImportState.Idle }

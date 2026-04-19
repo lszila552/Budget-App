@@ -58,7 +58,7 @@ fun SettingsScreen(
     val filePicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
         uri ?: return@rememberLauncherForActivityResult
         val accId = accounts.getOrNull(selectedAccIdx)?.id ?: return@rememberLauncherForActivityResult
-        viewModel.importCamt053(uri, context, accId)
+        viewModel.importFile(uri, context, accId)
     }
 
     val exportLauncher = rememberLauncherForActivityResult(
@@ -175,21 +175,35 @@ fun SettingsScreen(
                 }
             }
 
+            Text(
+                "Export your transactions as CSV from your bank's website, or download a CAMT.053 XML file.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+
             Button(
-                onClick  = { filePicker.launch(arrayOf("text/xml", "application/xml", "*/*")) },
+                onClick  = { filePicker.launch(arrayOf(
+                    "text/csv", "text/comma-separated-values",
+                    "text/xml", "application/xml", "*/*"
+                )) },
                 modifier = Modifier.fillMaxWidth(),
                 enabled  = importState !is ImportState.Loading && accounts.isNotEmpty()
             ) {
                 if (importState is ImportState.Loading)
                     CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp)
                 else
-                    Text("Import CAMT.053 file")
+                    Text("Import bank file (.csv or .xml)")
             }
 
             when (val s = importState) {
-                is ImportState.Success ->
-                    Text("✓ Imported ${s.count} new transactions",
-                        color = MaterialTheme.colorScheme.primary)
+                is ImportState.Success -> {
+                    val needsReview = s.count - s.categorized
+                    Text(
+                        "✓ Imported ${s.count} transactions " +
+                        "(${s.categorized} auto-categorized, $needsReview need review)",
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                }
                 is ImportState.Error ->
                     Text("✗ ${s.message}", color = MaterialTheme.colorScheme.error)
                 else -> {}
