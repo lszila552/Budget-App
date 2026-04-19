@@ -1,4 +1,4 @@
-package com.vrijgeld.data.`import`
+package com.vrijgeld.data.importer
 
 import android.util.Xml
 import com.vrijgeld.data.model.ImportSource

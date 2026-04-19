@@ -1,4 +1,4 @@
-package com.vrijgeld.data.`import`
+package com.vrijgeld.data.importer
 
 import com.vrijgeld.data.db.dao.RuleDao
 import com.vrijgeld.data.model.CategorizationRule
