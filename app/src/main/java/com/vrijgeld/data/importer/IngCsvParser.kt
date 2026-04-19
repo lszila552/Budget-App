@@ -43,7 +43,7 @@ class IngCsvParser : BankCsvParser {
             val meded   = cols.getOrElse(colMeded)    { "" }
 
             val dateMs = runCatching { dateFmt.parse(datum)?.time ?: 0L }.getOrDefault(0L)
-            val amountDouble = bedrag.replace(",", ".").toDoubleOrNull() ?: continue
+            val amountDouble = parseEuropeanAmount(bedrag) ?: continue
             val cents = (amountDouble * 100).toLong().let { if (afBij == "Af") -it else it }
 
             val description = buildString {
@@ -63,6 +63,21 @@ class IngCsvParser : BankCsvParser {
             )
         }
         return results
+    }
+}
+
+// Handles European number formats:
+//   "1.234,56"  → 1234.56  (dot = thousands, comma = decimal)
+//   "1234,56"   → 1234.56  (comma = decimal only)
+//   "1234.56"   → 1234.56  (already standard)
+internal fun parseEuropeanAmount(s: String): Double? {
+    val c = s.trim()
+    return when {
+        c.contains(",") && c.contains(".") ->
+            c.replace(".", "").replace(",", ".").toDoubleOrNull()
+        c.contains(",") ->
+            c.replace(",", ".").toDoubleOrNull()
+        else -> c.toDoubleOrNull()
     }
 }
 
