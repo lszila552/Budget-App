@@ -8,7 +8,7 @@
 
     <application
         android:name=".VrijGeldApp"
-        android:allowBackup="true"
+        android:allowBackup="false"
         android:label="VrijGeld"
         android:supportsRtl="true"
         android:theme="@style/Theme.VrijGeld">
