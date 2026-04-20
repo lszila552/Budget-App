@@ -26,4 +26,5 @@ class TransactionRepository @Inject constructor(private val dao: TransactionDao)
     suspend fun getRecurringOnce() = dao.getRecurringOnce()
     suspend fun getRecentExpensesSince(since: Long) = dao.getRecentExpensesSince(since)
     suspend fun getCategoryExpensesSince(catId: Long, since: Long) = dao.getCategoryExpensesSince(catId, since)
+    suspend fun getAccountBalance(accountId: Long) = dao.getAccountBalance(accountId)
 }

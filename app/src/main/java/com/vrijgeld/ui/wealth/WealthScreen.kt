@@ -503,6 +503,13 @@ private fun SavingsCategoryRow(
                     color = TextSecondary
                 )
             }
+            if (item.totalSaved > 0) {
+                Text(
+                    "€${"%.0f".format(item.totalSaved / 100.0)} saved",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = Accent
+                )
+            }
         }
         if (item.thisMonthAllocation > 0) {
             Text(

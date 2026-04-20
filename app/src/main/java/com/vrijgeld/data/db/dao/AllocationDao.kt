@@ -19,6 +19,9 @@ interface AllocationDao {
     @Query("SELECT * FROM allocations WHERE categoryId = :categoryId ORDER BY yearMonth ASC")
     suspend fun getForCategoryOnce(categoryId: Long): List<MonthlyAllocation>
 
+    @Query("SELECT COALESCE(SUM(allocated), 0) FROM allocations WHERE categoryId = :catId")
+    suspend fun getTotalAllocated(catId: Long): Long
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsert(allocation: MonthlyAllocation)
 
