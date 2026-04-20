@@ -49,14 +49,20 @@ class NetWorthViewModel @Inject constructor(
 
                 val liabilities = active.filter { it.type == AccountType.LIABILITY }
 
-                val latest   = snapshots.firstOrNull()?.netWorth ?: 0L
-                val previous = snapshots.getOrNull(1)?.netWorth  ?: 0L
+                // Live net worth: computed from current account balances so it updates
+                // immediately when a transaction is added or an import runs.
+                val liveAssets   = active.filter { it.type != AccountType.LIABILITY }.sumOf { it.currentBalance }
+                val liveLiabs    = liabilities.sumOf { it.currentBalance }
+                val liveNetWorth = liveAssets - liveLiabs
+
+                // Previous month from snapshots for the monthly delta badge
+                val previous = snapshots.firstOrNull()?.netWorth ?: 0L
 
                 _uiState.value = _uiState.value.copy(
                     snapshots         = snapshots,
                     assetAccounts     = assetAccounts,
                     liabilityAccounts = liabilities,
-                    latestNetWorth    = latest,
+                    latestNetWorth    = liveNetWorth,
                     previousNetWorth  = previous
                 )
             }.collect {}

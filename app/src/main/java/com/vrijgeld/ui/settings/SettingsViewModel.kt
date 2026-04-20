@@ -151,6 +151,7 @@ class SettingsViewModel @Inject constructor(
 
             var count = 0
             var categorized = 0
+            val affectedAccountIds = mutableSetOf<Long>()
             parsed.forEach { p ->
                 if (transactionRepo.getByImportHash(p.importHash) != null) return@forEach
                 val accountId = p.ownIban
@@ -171,7 +172,11 @@ class SettingsViewModel @Inject constructor(
                     importSource = p.importSource,
                     importHash   = p.importHash
                 ))
+                affectedAccountIds.add(accountId)
                 count++
+            }
+            for (accountId in affectedAccountIds) {
+                accountRepo.updateBalance(accountId, transactionRepo.getAccountBalance(accountId))
             }
             _importState.value = ImportState.Success(count, categorized)
         }.onFailure { _importState.value = ImportState.Error(it.message ?: "Import failed") }

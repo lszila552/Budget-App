@@ -18,7 +18,8 @@ import javax.inject.Inject
 
 data class SavingsCategoryItem(
     val category: Category,
-    val thisMonthAllocation: Long
+    val thisMonthAllocation: Long,
+    val totalSaved: Long = 0L
 )
 
 data class SavingsAccountItem(
@@ -69,7 +70,8 @@ class SavingsViewModel @Inject constructor(
                         categories = cats.map { cat ->
                             SavingsCategoryItem(
                                 category             = cat,
-                                thisMonthAllocation  = allocations[cat.id]?.allocated ?: 0L
+                                thisMonthAllocation  = allocations[cat.id]?.allocated ?: 0L,
+                                totalSaved           = budgetRepo.getTotalAllocated(cat.id)
                             )
                         },
                         expanded   = _uiState.value.accountItems
@@ -83,7 +85,8 @@ class SavingsViewModel @Inject constructor(
                     .map { cat ->
                         SavingsCategoryItem(
                             category            = cat,
-                            thisMonthAllocation = allocations[cat.id]?.allocated ?: 0L
+                            thisMonthAllocation = allocations[cat.id]?.allocated ?: 0L,
+                            totalSaved          = budgetRepo.getTotalAllocated(cat.id)
                         )
                     }
 

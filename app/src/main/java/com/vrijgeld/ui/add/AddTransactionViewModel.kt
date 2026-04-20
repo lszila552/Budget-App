@@ -112,6 +112,8 @@ class AddTransactionViewModel @Inject constructor(
                 isReviewed          = true
             )
         )
+        val newBalance = transactionRepo.getAccountBalance(accountId)
+        accountRepo.updateBalance(accountId, newBalance)
         _uiState.value = AddUiState(saved = true)
     }
 

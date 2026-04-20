@@ -30,4 +30,5 @@ class BudgetRepository @Inject constructor(
     suspend fun insertCategory(category: Category)     = categoryDao.insert(category)
     suspend fun deleteCategory(category: Category)     = categoryDao.delete(category)
     suspend fun getAllAllocationsOnce()                = allocationDao.getAllOnce()
+    suspend fun getTotalAllocated(catId: Long)         = allocationDao.getTotalAllocated(catId)
 }
