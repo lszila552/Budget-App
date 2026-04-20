@@ -34,6 +34,15 @@ abstract class VrijGeldDatabase : RoomDatabase() {
     abstract fun settingDao(): SettingDao
 
     companion object {
+        // ── How to add a new migration ────────────────────────────────────────
+        // 1. Change `version` in @Database above (e.g. 2 → 3).
+        // 2. Define MIGRATION_X_Y below describing every DDL change.
+        // 3. Register it in AppModule: .addMigrations(..., MIGRATION_X_Y)
+        // 4. Build the project — Room generates app/schemas/com.vrijgeld/X.json.
+        // 5. Commit the generated schema JSON alongside the migration code.
+        // Never use fallbackToDestructiveMigration(); that wipes user data.
+        // ─────────────────────────────────────────────────────────────────────
+
         val MIGRATION_1_2 = object : Migration(1, 2) {
             override fun migrate(db: SupportSQLiteDatabase) {
                 db.execSQL("ALTER TABLE categories ADD COLUMN accountId INTEGER")
