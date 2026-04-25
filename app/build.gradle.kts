@@ -1,9 +1,15 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.ksp)
     alias(libs.plugins.hilt)
+}
+
+val versionProps = Properties().also { props ->
+    rootProject.file("version.properties").inputStream().use(props::load)
 }
 
 android {
@@ -14,10 +20,22 @@ android {
         applicationId   = "com.vrijgeld"
         minSdk          = 26
         targetSdk       = 35
-        versionCode     = 1
-        versionName     = "1.0"
+        versionCode     = versionProps.getProperty("VERSION_CODE").toInt()
+        versionName     = versionProps.getProperty("VERSION_NAME")
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables { useSupportLibrary = true }
+    }
+
+    signingConfigs {
+        create("release") {
+            val keystorePath = System.getenv("KEYSTORE_PATH")
+            if (keystorePath != null) {
+                storeFile      = file(keystorePath)
+                storePassword  = System.getenv("STORE_PASSWORD")
+                keyAlias       = System.getenv("KEY_ALIAS")
+                keyPassword    = System.getenv("KEY_PASSWORD")
+            }
+        }
     }
 
     buildTypes {
@@ -25,6 +43,7 @@ android {
             isMinifyEnabled   = true
             isShrinkResources = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
+            signingConfig = signingConfigs.getByName("release")
         }
     }
 
