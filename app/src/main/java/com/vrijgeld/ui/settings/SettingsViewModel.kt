@@ -14,6 +14,7 @@ import com.vrijgeld.data.model.Transaction
 import com.vrijgeld.data.model.Category
 import com.vrijgeld.data.repository.AccountRepository
 import com.vrijgeld.data.repository.BudgetRepository
+import com.vrijgeld.data.repository.KEY_MONTHLY_INCOME
 import com.vrijgeld.data.repository.KEY_NOTIF_BILL_LOW_BALANCE
 import com.vrijgeld.data.repository.KEY_NOTIF_SUBSCRIPTION_RENEWAL
 import com.vrijgeld.data.repository.KEY_NOTIF_UNUSUAL_TX
@@ -88,6 +89,9 @@ class SettingsViewModel @Inject constructor(
     private val _savingsCategories = MutableStateFlow<List<Category>>(emptyList())
     val savingsCategories = _savingsCategories.asStateFlow()
 
+    private val _monthlyIncome = MutableStateFlow(0L)
+    val monthlyIncome = _monthlyIncome.asStateFlow()
+
     init {
         viewModelScope.launch {
             _categories.value = budgetRepo.getExpenseCategoriesOnce()
@@ -105,6 +109,9 @@ class SettingsViewModel @Inject constructor(
                 subscriptionRenewal = settingsRepo.getNotifSubscriptionRenewal()
             )
         }
+        viewModelScope.launch {
+            _monthlyIncome.value = settingsRepo.getMonthlyIncome()
+        }
     }
 
     fun setTheme(theme: AppTheme) {
@@ -120,6 +127,12 @@ class SettingsViewModel @Inject constructor(
     fun setBiometric(enabled: Boolean) {
         appPrefs.biometricEnabled = enabled
         _biometricEnabled.value   = enabled
+    }
+
+    fun setMonthlyIncome(text: String) = viewModelScope.launch {
+        val cents = text.toDoubleOrNull()?.times(100)?.toLong() ?: return@launch
+        settingsRepo.setMonthlyIncome(cents)
+        _monthlyIncome.value = cents
     }
 
     fun setNotifPref(key: String, enabled: Boolean) = viewModelScope.launch {
@@ -140,12 +153,26 @@ class SettingsViewModel @Inject constructor(
             val parsed = withContext(Dispatchers.IO) {
                 val lines = context.contentResolver.openInputStream(uri)
                     ?.bufferedReader()?.readLines() ?: emptyList()
-                val csvResult = CsvParser().parse(lines)
-                if (csvResult.isNotEmpty()) {
-                    csvResult
+
+                val firstNonEmpty = lines.firstOrNull { it.isNotBlank() }?.trimStart() ?: ""
+
+                if (firstNonEmpty.startsWith("<?xml")) {
+                    runCatching {
+                        context.contentResolver.openInputStream(uri)
+                            ?.use { Camt053Parser().parse(it) } ?: emptyList()
+                    }.getOrElse {
+                        throw IllegalArgumentException(
+                            "Could not read the XML file. Make sure it's a valid CAMT.053 export."
+                        )
+                    }
                 } else {
-                    context.contentResolver.openInputStream(uri)
-                        ?.use { Camt053Parser().parse(it) } ?: emptyList()
+                    val result = CsvParser().parse(lines)
+                    if (result.isEmpty() && lines.size > 2) {
+                        throw IllegalArgumentException(
+                            "Could not read this file. Make sure it's a CSV export from ING, ABN AMRO, or Rabobank."
+                        )
+                    }
+                    result
                 }
             }
 

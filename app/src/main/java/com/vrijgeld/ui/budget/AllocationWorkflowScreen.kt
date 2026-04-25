@@ -8,6 +8,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -34,6 +35,15 @@ fun AllocationWorkflowScreen(
     viewModel: AllocationViewModel = hiltViewModel()
 ) {
     val state by viewModel.state.collectAsState()
+    var showIncomeDialog by remember { mutableStateOf(false) }
+
+    if (showIncomeDialog) {
+        IncomeEditDialog(
+            current   = state.totalIncome,
+            onDismiss = { showIncomeDialog = false },
+            onConfirm = { viewModel.overrideIncome(it); showIncomeDialog = false }
+        )
+    }
 
     LaunchedEffect(state.applied) {
         if (state.applied) navController.popBackStack()
@@ -74,10 +84,27 @@ fun AllocationWorkflowScreen(
                 color    = SurfaceColor
             ) {
                 Column(
-                    Modifier.padding(16.dp),
+                    Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    Text("Total income", style = MaterialTheme.typography.labelMedium, color = TextSecondary)
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.Center
+                    ) {
+                        Text("Total income", style = MaterialTheme.typography.labelMedium, color = TextSecondary)
+                        Spacer(Modifier.width(4.dp))
+                        IconButton(
+                            onClick  = { showIncomeDialog = true },
+                            modifier = Modifier.size(20.dp)
+                        ) {
+                            Icon(
+                                Icons.Filled.Edit,
+                                contentDescription = "Edit income",
+                                tint     = TextSecondary,
+                                modifier = Modifier.size(14.dp)
+                            )
+                        }
+                    }
                     Text(
                         "€${"%.2f".format(state.totalIncome / 100.0)}",
                         fontFamily = JetBrainsMonoFamily,
@@ -164,6 +191,36 @@ fun AllocationWorkflowScreen(
             }
         }
     }
+}
+
+@Composable
+private fun IncomeEditDialog(
+    current: Long,
+    onDismiss: () -> Unit,
+    onConfirm: (String) -> Unit
+) {
+    var text by remember { mutableStateOf(if (current > 0) "%.2f".format(current / 100.0) else "") }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Set income for this month") },
+        text  = {
+            OutlinedTextField(
+                value           = text,
+                onValueChange   = { text = it },
+                prefix          = { Text("€") },
+                label           = { Text("Amount") },
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                singleLine      = true,
+                modifier        = Modifier.fillMaxWidth()
+            )
+        },
+        confirmButton = {
+            TextButton(onClick = { onConfirm(text) }) { Text("Set") }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text("Cancel") }
+        }
+    )
 }
 
 @Composable
