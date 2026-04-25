@@ -41,7 +41,9 @@ jobs:
 
       - name: Decode keystore
         run: |
-          echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 --decode > ${{ runner.temp }}/release.jks
+          printf '%s' "${{ secrets.KEYSTORE_BASE64 }}" | base64 --decode > ${{ runner.temp }}/release.jks
+          # Verify the file decoded correctly (should be a valid JKS/PKCS12 binary)
+          file ${{ runner.temp }}/release.jks
 
       - name: Run unit tests
         run: ./gradlew testReleaseUnitTest --no-daemon
