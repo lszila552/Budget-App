@@ -4,6 +4,12 @@ on:
   push:
     tags:
       - 'v*'
+  workflow_dispatch:
+    inputs:
+      tag_name:
+        description: 'Release tag (e.g. v1.1.0)'
+        required: true
+        default: 'v1.1.0'
 
 jobs:
   release:
@@ -54,10 +60,19 @@ jobs:
           VERSION_NAME=$(grep VERSION_NAME version.properties | cut -d= -f2)
           echo "name=$VERSION_NAME" >> "$GITHUB_OUTPUT"
 
+      - name: Resolve tag name
+        id: tag
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "value=${{ github.event.inputs.tag_name }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "value=${{ github.ref_name }}" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           name: "VrijGeld ${{ steps.version.outputs.name }}"
-          tag_name: ${{ github.ref_name }}
+          tag_name: ${{ steps.tag.outputs.value }}
           generate_release_notes: true
           files: app/build/outputs/apk/release/*.apk
