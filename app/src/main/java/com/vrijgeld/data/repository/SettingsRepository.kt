@@ -9,13 +9,15 @@ const val KEY_NOTIF_WEEKLY_PACE        = "notif_weekly_pace"
 const val KEY_NOTIF_BILL_LOW_BALANCE   = "notif_bill_low_balance"
 const val KEY_NOTIF_UNUSUAL_TX         = "notif_unusual_tx"
 const val KEY_NOTIF_SUBSCRIPTION_RENEWAL = "notif_subscription_renewal"
+const val KEY_MONTHLY_INCOME           = "monthly_income"
 
 @Singleton
 class SettingsRepository @Inject constructor(private val dao: SettingDao) {
     suspend fun get(key: String): String? = dao.get(key)?.value
     suspend fun set(key: String, value: String) = dao.set(AppSetting(key, value))
 
-    suspend fun getMonthlyIncome(): Long  = get("monthly_income")?.toLongOrNull() ?: 350_000L
+    suspend fun getMonthlyIncome(): Long       = get(KEY_MONTHLY_INCOME)?.toLongOrNull() ?: 350_000L
+    suspend fun setMonthlyIncome(cents: Long) = set(KEY_MONTHLY_INCOME, cents.toString())
     suspend fun getTargetSavingsRate(): Float = get("target_savings_rate")?.toFloatOrNull() ?: 40f
 
     suspend fun getNotifWeeklyPace():           Boolean = get(KEY_NOTIF_WEEKLY_PACE)             != "false"

@@ -53,6 +53,7 @@ fun SettingsScreen(
     val currentAccent     by viewModel.accentIndex.collectAsState()
     val biometricEnabled  by viewModel.biometricEnabled.collectAsState()
     val exportState       by viewModel.exportState.collectAsState()
+    val monthlyIncome     by viewModel.monthlyIncome.collectAsState()
 
     var selectedAccIdx by remember { mutableIntStateOf(0) }
 
@@ -309,6 +310,21 @@ fun SettingsScreen(
                     )
                 }
             }
+
+            // ── Budget / Monthly income ──────────────────────────────
+            HorizontalDivider()
+            Text("Budget", style = MaterialTheme.typography.titleLarge)
+            Text(
+                "Default monthly income used when allocating. You can override it each month on the allocation screen.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            ManualBalanceRow(
+                name      = "Monthly income",
+                balance   = monthlyIncome,
+                typeLabel = "Default for allocation",
+                onSave    = { viewModel.setMonthlyIncome(it) }
+            )
 
             // ── Budget defaults ──────────────────────────────────────
             if (categories.isNotEmpty()) {

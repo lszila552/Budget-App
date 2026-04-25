@@ -91,8 +91,12 @@ class AllocationViewModel @Inject constructor(
         )
     }
 
-    fun updateDraft(categoryId: Long, text: String) {
-        val updated = _state.value.drafts.map {
+    fun overrideIncome(text: String) {
+        val cents = text.toDoubleOrNull()?.times(100)?.toLong() ?: return
+        _state.value = _state.value.copy(totalIncome = cents)
+    }
+
+    fun updateDraft(categoryId: Long, text: String) {        val updated = _state.value.drafts.map {
             if (it.categoryId == categoryId) it.copy(amountText = text) else it
         }
         _state.value = _state.value.copy(drafts = updated)
