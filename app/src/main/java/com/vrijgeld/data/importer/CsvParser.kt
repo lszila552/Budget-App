@@ -8,26 +8,32 @@ interface BankCsvParser {
     fun parse(lines: List<String>): List<ParsedTransaction>
 }
 
-// Strategy dispatcher: inspects the header row and delegates to the correct bank parser.
+// Strategy dispatcher: finds the header row regardless of delimiter or language,
+// then delegates to the correct bank parser.
 class CsvParser {
 
     fun parse(lines: List<String>): List<ParsedTransaction> {
-        val header = lines.firstOrNull { it.contains(";") } ?: return emptyList()
+        // Find the first non-blank line that matches a known bank CSV header signature.
+        // Works for Dutch and English ING exports and any of tab/comma/semicolon delimiters.
+        val headerLine = lines.firstOrNull { line ->
+            val l = stripBom(line).lowercase()
+            l.contains("transactiedatum") ||                                       // ABN AMRO
+            (l.contains("iban/bban") && l.contains("naam tegenpartij")) ||         // Rabobank
+            ((l.contains("datum") || l.contains("date")) &&                        // ING
+             (l.contains("bedrag") || l.contains("amount")))
+        } ?: return emptyList()
+
+        val l = stripBom(headerLine).lowercase()
         return when {
-            // ING Netherlands: has both "Naam / Omschrijving" and "Af Bij"
-            header.contains("Naam / Omschrijving") && header.contains("Af Bij") ->
-                IngCsvParser().parse(lines)
-
-            // ABN AMRO: has "Muntsoort" and "Transactiedatum"
-            header.contains("Muntsoort") && header.contains("Transactiedatum") ->
+            l.contains("transactiedatum") && l.contains("muntsoort") ->
                 AbnAmroCsvParser().parse(lines)
-
-            // Rabobank: has "IBAN/BBAN" and "Naam tegenpartij"
-            header.contains("IBAN/BBAN") && header.contains("Naam tegenpartij") ->
+            l.contains("iban/bban") && l.contains("naam tegenpartij") ->
                 RabobankCsvParser().parse(lines)
-
-            // Fall back to ING parser as best-effort
-            else -> IngCsvParser().parse(lines)
+            // ING: Dutch or English date + amount columns (IngCsvParser handles both)
+            (l.contains("datum") || l.contains("date")) &&
+            (l.contains("bedrag") || l.contains("amount")) ->
+                IngCsvParser().parse(lines)
+            else -> emptyList()
         }
     }
 }

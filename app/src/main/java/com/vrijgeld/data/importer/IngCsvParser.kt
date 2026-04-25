@@ -5,69 +5,166 @@ import java.security.MessageDigest
 import java.text.SimpleDateFormat
 import java.util.Locale
 
-// ING Netherlands personal CSV format:
-// "Datum";"Naam / Omschrijving";"Rekening";"Tegenrekening";"Code";"Af Bij";"Bedrag (EUR)";"Mutatiesoort";"Mededelingen"
+// ING Netherlands CSV — supports Dutch and English headers, any of tab/comma/semicolon delimiters,
+// YYYYMMDD / DD-MM-YYYY / YYYY-MM-DD date formats, and comma or dot as decimal separator.
 class IngCsvParser : BankCsvParser {
 
-    private val dateFmt = SimpleDateFormat("yyyyMMdd", Locale.US)
+    private val dateFmts = listOf(
+        SimpleDateFormat("yyyyMMdd",   Locale.US),
+        SimpleDateFormat("dd-MM-yyyy", Locale.US),
+        SimpleDateFormat("yyyy-MM-dd", Locale.US)
+    )
+
+    // Maps every known header spelling (lowercase, trimmed) → logical field key.
+    private val headerAliases = mapOf(
+        "date"                to "date",
+        "datum"               to "date",
+        "name / description"  to "name",
+        "naam / omschrijving" to "name",
+        "account"             to "account",
+        "rekening"            to "account",
+        "counterparty"        to "counterparty",
+        "tegenrekening"       to "counterparty",
+        "code"                to "code",
+        "debit/credit"        to "direction",
+        "af bij"              to "direction",
+        "amount (eur)"        to "amount",
+        "bedrag (eur)"        to "amount",
+        "transaction type"    to "type",
+        "mutatiesoort"        to "type",
+        "notifications"       to "memo",
+        "mededelingen"        to "memo"
+    )
 
     override fun parse(lines: List<String>): List<ParsedTransaction> {
-        val headerIdx = lines.indexOfFirst { it.contains("Datum") && it.contains("Bedrag") }
+        val headerIdx = lines.indexOfFirst { line ->
+            val l = stripBom(line).lowercase()
+            (l.contains("date") || l.contains("datum")) &&
+            (l.contains("amount") || l.contains("bedrag"))
+        }
         if (headerIdx < 0) return emptyList()
 
-        val headers   = parseSemicolonRow(lines[headerIdx])
-        val colDatum  = headers.indexOf("Datum")
-        val colName   = headers.indexOf("Naam / Omschrijving")
-        val colRek    = headers.indexOf("Rekening")
-        val colTegen  = headers.indexOf("Tegenrekening")
-        val colAfBij  = headers.indexOf("Af Bij")
-        val colBedrag = headers.indexOf("Bedrag (EUR)")
-        val colMutatie= headers.indexOf("Mutatiesoort")
-        val colMeded  = headers.indexOf("Mededelingen")
+        val headerLine = stripBom(lines[headerIdx])
+        val delimiter  = detectDelimiter(headerLine)
+        val rawHeaders = parseDelimitedRow(headerLine, delimiter)
 
-        if (colDatum < 0 || colBedrag < 0 || colAfBij < 0) return emptyList()
+        // Build field-name → column-index map from the actual header row.
+        val colFor = mutableMapOf<String, Int>()
+        rawHeaders.forEachIndexed { idx, h ->
+            val field = headerAliases[h.trim().lowercase()]
+            if (field != null) colFor[field] = idx
+        }
+
+        // Date, amount and direction are the minimum required columns.
+        val colDate         = colFor["date"]        ?: return emptyList()
+        val colAmount       = colFor["amount"]      ?: return emptyList()
+        val colDirection    = colFor["direction"]   ?: return emptyList()
+        val colName         = colFor["name"]
+        val colAccount      = colFor["account"]
+        val colCounterparty = colFor["counterparty"]
+        val colCode         = colFor["code"]
+        val colType         = colFor["type"]
+        val colMemo         = colFor["memo"]
 
         val results = mutableListOf<ParsedTransaction>()
         for (i in (headerIdx + 1) until lines.size) {
             val line = lines[i].trim()
             if (line.isEmpty()) continue
-            val cols = parseSemicolonRow(line)
+            val cols = parseDelimitedRow(line, delimiter)
 
-            val datum   = cols.getOrElse(colDatum)   { "" }
-            val name    = cols.getOrElse(colName)     { "" }
-            val rek     = cols.getOrElse(colRek)      { "" }
-            val tegen   = cols.getOrElse(colTegen)    { "" }
-            val afBij   = cols.getOrElse(colAfBij)    { "" }.trim()
-            val bedrag  = cols.getOrElse(colBedrag)   { "" }
-            val mutatie = cols.getOrElse(colMutatie)  { "" }
-            val meded   = cols.getOrElse(colMeded)    { "" }
+            val dateStr      = cols.getOrElse(colDate)         { "" }
+            val amountStr    = cols.getOrElse(colAmount)       { "" }
+            val direction    = cols.getOrElse(colDirection)    { "" }.trim()
+            val name         = colName?.let         { cols.getOrElse(it) { "" } } ?: ""
+            val account      = colAccount?.let      { cols.getOrElse(it) { "" } } ?: ""
+            val counterparty = colCounterparty?.let { cols.getOrElse(it) { "" } } ?: ""
+            val code         = colCode?.let         { cols.getOrElse(it) { "" } } ?: ""
+            val type         = colType?.let         { cols.getOrElse(it) { "" } } ?: ""
+            val memo         = colMemo?.let         { cols.getOrElse(it) { "" } } ?: ""
 
-            val dateMs = runCatching { dateFmt.parse(datum)?.time ?: 0L }.getOrDefault(0L)
-            val amountDouble = parseEuropeanAmount(bedrag) ?: continue
-            val cents = (amountDouble * 100).toLong().let { if (afBij == "Af") -it else it }
+            val dateMs       = parseDate(dateStr)
+            val amountDouble = parseEuropeanAmount(amountStr) ?: continue
+            val isDebit = direction.equals("Af",    ignoreCase = true) ||
+                          direction.equals("Debit", ignoreCase = true) ||
+                          direction.equals("D",     ignoreCase = true)
+            val cents = (amountDouble * 100).toLong().let { if (isDebit) -it else it }
 
             val description = buildString {
-                if (mutatie.isNotBlank()) append(mutatie)
-                if (meded.isNotBlank()) { if (isNotEmpty()) append(": "); append(meded) }
-            }.ifEmpty { name }
+                if (type.isNotBlank()) append(type)
+                if (memo.isNotBlank()) { if (isNotEmpty()) append(": "); append(memo) }
+            }.ifEmpty { code.ifEmpty { name } }
 
             results += ParsedTransaction(
                 amountCents      = cents,
                 dateMillis       = dateMs,
                 description      = description,
                 merchantName     = name.ifEmpty { null },
-                counterpartyIban = tegen.ifEmpty { null },
-                importHash       = sha256("$datum|$bedrag|$description"),
+                counterpartyIban = counterparty.ifEmpty { null },
+                importHash       = sha256("$dateStr|$amountStr|$direction|$description"),
                 importSource     = ImportSource.CSV,
-                ownIban          = rek.ifEmpty { null }
+                ownIban          = account.ifEmpty { null }
             )
         }
         return results
     }
+
+    private fun parseDate(s: String): Long {
+        val t = s.trim()
+        for (fmt in dateFmts) {
+            val ms = runCatching { fmt.parse(t)?.time }.getOrNull()
+            if (ms != null && ms > 0L) return ms
+        }
+        return 0L
+    }
 }
 
+// ── Shared CSV utilities ──────────────────────────────────────────────────────
+
+internal fun stripBom(line: String): String =
+    if (line.isNotEmpty() && line[0] == '\uFEFF') line.substring(1) else line
+
+// Count delimiters outside quoted strings and return the most frequent one.
+internal fun detectDelimiter(line: String): Char {
+    var inQ = false
+    var tabs = 0; var commas = 0; var semis = 0
+    for (ch in stripBom(line)) {
+        when {
+            ch == '"'          -> inQ = !inQ
+            !inQ && ch == '\t' -> tabs++
+            !inQ && ch == ','  -> commas++
+            !inQ && ch == ';'  -> semis++
+        }
+    }
+    return when {
+        tabs > commas && tabs > semis -> '\t'
+        commas > semis                -> ','
+        else                          -> ';'
+    }
+}
+
+// RFC 4180-style single-row parser for any delimiter, with BOM stripping and quote handling.
+internal fun parseDelimitedRow(line: String, delimiter: Char): List<String> {
+    val result   = mutableListOf<String>()
+    val current  = StringBuilder()
+    var inQuotes = false
+    for (ch in stripBom(line)) {
+        when {
+            ch == '"'                    -> inQuotes = !inQuotes
+            ch == delimiter && !inQuotes -> { result += current.toString().trim(); current.clear() }
+            else                         -> current.append(ch)
+        }
+    }
+    result += current.toString().trim()
+    return result
+}
+
+// Kept for AbnAmroCsvParser + RabobankCsvParser.
+internal fun parseSemicolonRow(line: String): List<String> = parseDelimitedRow(line, ';')
+
+// ─────────────────────────────────────────────────────────────────────────────
+
 // Handles European number formats:
-//   "1.234,56"  → 1234.56  (dot = thousands, comma = decimal)
+//   "1.234,56"  → 1234.56  (dot = thousands separator, comma = decimal)
 //   "1234,56"   → 1234.56  (comma = decimal only)
 //   "1234.56"   → 1234.56  (already standard)
 internal fun parseEuropeanAmount(s: String): Double? {
@@ -79,24 +176,6 @@ internal fun parseEuropeanAmount(s: String): Double? {
             c.replace(",", ".").toDoubleOrNull()
         else -> c.toDoubleOrNull()
     }
-}
-
-// Parses a single semicolon-separated row, respecting double-quoted fields.
-internal fun parseSemicolonRow(line: String): List<String> {
-    val result  = mutableListOf<String>()
-    val current = StringBuilder()
-    var inQuotes = false
-    // Strip UTF-8 BOM if present on first character
-    val chars = if (line.isNotEmpty() && line[0] == '\uFEFF') line.substring(1) else line
-    for (ch in chars) {
-        when {
-            ch == '"'             -> inQuotes = !inQuotes
-            ch == ';' && !inQuotes -> { result += current.toString().trim(); current.clear() }
-            else                  -> current.append(ch)
-        }
-    }
-    result += current.toString().trim()
-    return result
 }
 
 internal fun sha256(input: String): String =
