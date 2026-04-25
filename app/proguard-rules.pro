@@ -47,6 +47,16 @@
 # ─── Security Crypto (EncryptedSharedPreferences / DatabaseKeyManager) ─────────
 -keep class androidx.security.crypto.** { *; }
 
+# ─── Google Tink (transitive dep of security-crypto) ─────────────────────────
+-keep class com.google.crypto.tink.** { *; }
+-dontwarn com.google.crypto.tink.**
+-dontwarn com.google.errorprone.annotations.**
+-dontwarn javax.annotation.**
+
+# ─── Kotlin serialization ─────────────────────────────────────────────────────
+-dontnote kotlinx.serialization.**
+-keepclassmembers class kotlinx.serialization.json.** { *; }
+
 # ─── General Kotlin / reflection safety ──────────────────────────────────────
 -keepattributes Signature
 -keepattributes *Annotation*
