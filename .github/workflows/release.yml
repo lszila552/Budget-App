@@ -1,0 +1,63 @@
+name: Release VrijGeld
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  release:
+    name: Build & Publish Release APK
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - name: Cache Gradle
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+          restore-keys: ${{ runner.os }}-gradle
+
+      - name: Make gradlew executable
+        run: chmod +x ./gradlew
+
+      - name: Decode keystore
+        run: |
+          echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 --decode > ${{ runner.temp }}/release.jks
+
+      - name: Run unit tests
+        run: ./gradlew testReleaseUnitTest --no-daemon
+
+      - name: Build signed release APK
+        env:
+          KEYSTORE_PATH: ${{ runner.temp }}/release.jks
+          STORE_PASSWORD: ${{ secrets.STORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+        run: ./gradlew assembleRelease --no-daemon
+
+      - name: Read version name
+        id: version
+        run: |
+          VERSION_NAME=$(grep VERSION_NAME version.properties | cut -d= -f2)
+          echo "name=$VERSION_NAME" >> "$GITHUB_OUTPUT"
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: "VrijGeld ${{ steps.version.outputs.name }}"
+          tag_name: ${{ github.ref_name }}
+          generate_release_notes: true
+          files: app/build/outputs/apk/release/*.apk

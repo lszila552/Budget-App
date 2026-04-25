@@ -3,6 +3,7 @@ name: Build VrijGeld
 on:
   push:
     branches: [main, dev]
+    tags-ignore: ['**']
   pull_request:
     branches: [main, dev]
   workflow_dispatch:  # manual trigger from GitHub UI
