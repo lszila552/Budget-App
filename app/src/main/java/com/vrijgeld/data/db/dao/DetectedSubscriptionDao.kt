@@ -27,4 +27,10 @@ interface DetectedSubscriptionDao {
 
     @Query("UPDATE detected_subscriptions SET isConfirmed = 1 WHERE id = :id")
     suspend fun confirm(id: Long)
+
+    @Query("SELECT * FROM detected_subscriptions WHERE id = :id LIMIT 1")
+    suspend fun getById(id: Long): DetectedSubscription?
+
+    @Query("DELETE FROM detected_subscriptions WHERE id = :id")
+    suspend fun delete(id: Long)
 }

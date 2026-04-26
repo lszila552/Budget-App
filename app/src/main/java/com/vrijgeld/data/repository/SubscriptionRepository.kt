@@ -14,4 +14,6 @@ class SubscriptionRepository @Inject constructor(private val dao: DetectedSubscr
     suspend fun dismiss(id: Long)                     = dao.dismiss(id)
     suspend fun confirm(id: Long)                     = dao.confirm(id)
     suspend fun getUpcomingOnce(from: Long, to: Long) = dao.getUpcomingOnce(from, to)
+    suspend fun getById(id: Long)                     = dao.getById(id)
+    suspend fun delete(id: Long)                      = dao.delete(id)
 }

@@ -86,7 +86,9 @@ fun BudgetScreen(
                     subscriptions       = state.subscriptions,
                     totalMonthlySubCost = state.totalMonthlySubCost,
                     onConfirm           = viewModel::confirm,
-                    onDismiss           = viewModel::dismiss
+                    onDismiss           = viewModel::dismiss,
+                    onAdd               = { navController.navigate(Screen.AddSubscription.createRoute()) },
+                    onEdit              = { id -> navController.navigate(Screen.AddSubscription.createRoute(id)) }
                 )
                 2 -> ForecastTab(state.forecast)
             }
