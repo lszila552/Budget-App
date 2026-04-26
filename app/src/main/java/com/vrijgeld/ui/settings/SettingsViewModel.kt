@@ -230,6 +230,13 @@ class SettingsViewModel @Inject constructor(
         _categories.value = budgetRepo.getExpenseCategoriesOnce()
     }
 
+    fun updateSinkingFundMonthly(category: Category, monthlyText: String) = viewModelScope.launch {
+        val monthly = monthlyText.toDoubleOrNull()?.times(100)?.toLong() ?: return@launch
+        val updated = category.copy(sinkingFundTarget = monthly * 12)
+        budgetRepo.updateCategory(updated)
+        _categories.value = budgetRepo.getExpenseCategoriesOnce()
+    }
+
     fun updateSavingsCategoryTarget(category: Category, amountText: String) = viewModelScope.launch {
         val cents = amountText.toDoubleOrNull()?.times(100)?.toLong()
         budgetRepo.updateCategory(category.copy(monthlyBudget = cents))

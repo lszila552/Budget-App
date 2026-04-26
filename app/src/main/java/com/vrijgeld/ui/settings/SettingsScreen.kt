@@ -19,7 +19,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -329,59 +328,55 @@ fun SettingsScreen(
             // ── Budget defaults ──────────────────────────────────────
             if (categories.isNotEmpty()) {
                 HorizontalDivider()
-
                 Text("Budget Defaults", style = MaterialTheme.typography.titleLarge)
                 Text(
                     "Default monthly amounts used when allocating income",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
-
                 categories.filter { !it.isSinkingFund }.forEach { cat ->
                     BudgetDefaultRow(
-                        icon    = cat.icon,
-                        name    = cat.name,
-                        amount  = cat.monthlyBudget,
-                        label   = "Monthly budget",
-                        onSave  = { viewModel.updateCategoryBudget(cat, it) }
+                        icon   = cat.icon,
+                        name   = cat.name,
+                        amount = cat.monthlyBudget,
+                        label  = "Monthly budget",
+                        onSave = { viewModel.updateCategoryBudget(cat, it) }
                     )
-                }
-
-                val sinkingCats = categories.filter { it.isSinkingFund }
-                if (sinkingCats.isNotEmpty()) {
-                    Text(
-                        "Sinking Fund Targets",
-                        style      = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.SemiBold,
-                        modifier   = Modifier.padding(top = 8.dp)
-                    )
-                    sinkingCats.forEach { cat ->
-                        BudgetDefaultRow(
-                            icon    = cat.icon,
-                            name    = cat.name,
-                            amount  = cat.sinkingFundTarget,
-                            label   = "Target amount",
-                            onSave  = { viewModel.updateSinkingFundTarget(cat, it) }
-                        )
-                    }
                 }
             }
 
-            // ── Savings categories ───────────────────────────────────
-            if (savingsCategories.isNotEmpty()) {
+            // ── Monthly Set-Asides ───────────────────────────────────
+            val sinkingCats = categories.filter { it.isSinkingFund }
+            if (sinkingCats.isNotEmpty() || savingsCategories.isNotEmpty()) {
                 HorizontalDivider()
-                Text("Savings Goals", style = MaterialTheme.typography.titleLarge)
+                Text("Monthly Set-Asides", style = MaterialTheme.typography.titleLarge)
                 Text(
-                    "Monthly allocation targets for your savings goals. Manage goals in Wealth → Savings.",
+                    "All amounts here are subtracted from income before calculating safe-to-spend. " +
+                    "Sinking funds save toward a fixed target; savings goals contribute every month.",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
+
+                sinkingCats.forEach { cat ->
+                    val monthly     = cat.sinkingFundTarget?.div(12)
+                    val targetLabel = if (cat.sinkingFundTarget != null)
+                        "Sinking fund · target €${"%.0f".format(cat.sinkingFundTarget / 100.0)}"
+                    else "Sinking fund"
+                    BudgetDefaultRow(
+                        icon   = cat.icon,
+                        name   = cat.name,
+                        amount = monthly,
+                        label  = targetLabel,
+                        onSave = { viewModel.updateSinkingFundMonthly(cat, it) }
+                    )
+                }
+
                 savingsCategories.forEach { cat ->
                     BudgetDefaultRow(
                         icon   = cat.icon,
                         name   = cat.name,
                         amount = cat.monthlyBudget,
-                        label  = "Monthly target",
+                        label  = "Savings goal · ongoing",
                         onSave = { viewModel.updateSavingsCategoryTarget(cat, it) }
                     )
                 }
