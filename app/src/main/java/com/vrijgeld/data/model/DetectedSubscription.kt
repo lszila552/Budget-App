@@ -13,5 +13,7 @@ data class DetectedSubscription(
     val lastSeenDate: Long,
     val occurrenceCount: Int,
     val isConfirmed: Boolean = false,
-    val isDismissed: Boolean = false
+    val isDismissed: Boolean = false,
+    val categoryId: Long? = null,
+    val accountId: Long? = null
 )

@@ -1,9 +1,12 @@
 package com.vrijgeld.ui.budget
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -32,48 +35,60 @@ fun SubscriptionsTab(
     subscriptions: List<DetectedSubscription>,
     totalMonthlySubCost: Long,
     onConfirm: (Long) -> Unit,
-    onDismiss: (Long) -> Unit
+    onDismiss: (Long) -> Unit,
+    onAdd: () -> Unit,
+    onEdit: (Long) -> Unit
 ) {
-    Column(Modifier.fillMaxSize().background(Background)) {
-        // Header
-        Column(
-            modifier            = Modifier.fillMaxWidth().background(SurfaceColor).padding(16.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            Text(
-                text       = "€${totalMonthlySubCost / 100}/month",
-                fontSize   = 32.sp,
-                fontWeight = FontWeight.Bold,
-                color      = AmberWarn
-            )
-            Text(
-                text  = "€${totalMonthlySubCost * 12 / 100}/year",
-                style = MaterialTheme.typography.bodyMedium,
-                color = TextSecondary
-            )
-        }
-
-        if (subscriptions.isEmpty()) {
-            Box(
-                Modifier.fillMaxSize(),
-                contentAlignment = Alignment.Center
+    Box(Modifier.fillMaxSize().background(Background)) {
+        Column(Modifier.fillMaxSize()) {
+            // Header
+            Column(
+                modifier            = Modifier.fillMaxWidth().background(SurfaceColor).padding(16.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Text(
-                    "No subscriptions detected yet.\nImport 3+ months of transactions.",
+                    text       = "€${totalMonthlySubCost / 100}/month",
+                    fontSize   = 32.sp,
+                    fontWeight = FontWeight.Bold,
+                    color      = AmberWarn
+                )
+                Text(
+                    text  = "€${totalMonthlySubCost * 12 / 100}/year",
                     style = MaterialTheme.typography.bodyMedium,
                     color = TextSecondary
                 )
             }
-            return@Column
+
+            if (subscriptions.isEmpty()) {
+                Box(
+                    Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        "No subscriptions yet.\nTap + to add one manually,\nor import 3+ months of transactions.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = TextSecondary
+                    )
+                }
+            } else {
+                LazyColumn(
+                    contentPadding      = PaddingValues(bottom = 80.dp, top = 8.dp),
+                    verticalArrangement = Arrangement.spacedBy(2.dp)
+                ) {
+                    items(subscriptions, key = { it.id }) { sub ->
+                        SubscriptionRow(sub, onConfirm, onDismiss, onEdit)
+                    }
+                }
+            }
         }
 
-        LazyColumn(
-            contentPadding      = PaddingValues(vertical = 8.dp),
-            verticalArrangement = Arrangement.spacedBy(2.dp)
+        FloatingActionButton(
+            onClick          = onAdd,
+            modifier         = Modifier.align(Alignment.BottomEnd).padding(16.dp),
+            containerColor   = Accent,
+            contentColor     = Color.Black
         ) {
-            items(subscriptions, key = { it.id }) { sub ->
-                SubscriptionRow(sub, onConfirm, onDismiss)
-            }
+            Icon(Icons.Filled.Add, contentDescription = "Add subscription")
         }
     }
 }
@@ -83,7 +98,8 @@ fun SubscriptionsTab(
 private fun SubscriptionRow(
     sub: DetectedSubscription,
     onConfirm: (Long) -> Unit,
-    onDismiss: (Long) -> Unit
+    onDismiss: (Long) -> Unit,
+    onEdit: (Long) -> Unit
 ) {
     val dismissState = rememberSwipeToDismissBoxState(
         confirmValueChange = { value ->
@@ -96,7 +112,7 @@ private fun SubscriptionRow(
     )
 
     SwipeToDismissBox(
-        state             = dismissState,
+        state                       = dismissState,
         enableDismissFromStartToEnd = true,
         enableDismissFromEndToStart = true,
         backgroundContent = {
@@ -122,12 +138,12 @@ private fun SubscriptionRow(
         val dateFmt = SimpleDateFormat("d MMM", Locale("nl"))
 
         Surface(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier.fillMaxWidth().clickable { onEdit(sub.id) },
             color    = SurfaceVar
         ) {
             Row(
-                modifier            = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
-                verticalAlignment   = Alignment.CenterVertically
+                modifier          = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
+                verticalAlignment = Alignment.CenterVertically
             ) {
                 Column(Modifier.weight(1f)) {
                     Row(verticalAlignment = Alignment.CenterVertically) {

@@ -19,7 +19,7 @@ import com.vrijgeld.data.model.*
         AppSetting::class,
         DetectedSubscription::class,
     ],
-    version = 2,
+    version = 3,
     exportSchema = true
 )
 @TypeConverters(Converters::class)
@@ -46,6 +46,13 @@ abstract class VrijGeldDatabase : RoomDatabase() {
         val MIGRATION_1_2 = object : Migration(1, 2) {
             override fun migrate(db: SupportSQLiteDatabase) {
                 db.execSQL("ALTER TABLE categories ADD COLUMN accountId INTEGER")
+            }
+        }
+
+        val MIGRATION_2_3 = object : Migration(2, 3) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE detected_subscriptions ADD COLUMN categoryId INTEGER")
+                db.execSQL("ALTER TABLE detected_subscriptions ADD COLUMN accountId INTEGER")
             }
         }
     }

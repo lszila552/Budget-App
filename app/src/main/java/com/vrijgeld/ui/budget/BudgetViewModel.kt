@@ -63,6 +63,7 @@ class BudgetViewModel @Inject constructor(
 
     fun confirm(id: Long) = viewModelScope.launch { subscriptionRepo.confirm(id) }
     fun dismiss(id: Long) = viewModelScope.launch { subscriptionRepo.dismiss(id) }
+    fun delete(id: Long)  = viewModelScope.launch { subscriptionRepo.delete(id) }
     fun setOverspendTarget(env: EnvelopeState?) { _uiState.value = _uiState.value.copy(overspendTarget = env) }
 
     fun transferAllocation(sourceId: Long, targetId: Long) = viewModelScope.launch {

@@ -4,12 +4,15 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.vrijgeld.data.model.Account
 import com.vrijgeld.data.model.Category
+import com.vrijgeld.data.model.DetectedSubscription
 import com.vrijgeld.data.model.ImportSource
 import com.vrijgeld.data.model.RecurrenceFrequency
 import com.vrijgeld.data.model.Transaction
 import com.vrijgeld.data.repository.AccountRepository
 import com.vrijgeld.data.repository.BudgetRepository
+import com.vrijgeld.data.repository.SubscriptionRepository
 import com.vrijgeld.data.repository.TransactionRepository
+import com.vrijgeld.domain.nextFutureOccurrence
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -35,6 +38,7 @@ class AddTransactionViewModel @Inject constructor(
     private val transactionRepo: TransactionRepository,
     private val budgetRepo: BudgetRepository,
     private val accountRepo: AccountRepository,
+    private val subscriptionRepo: SubscriptionRepository,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(AddUiState())
@@ -114,6 +118,28 @@ class AddTransactionViewModel @Inject constructor(
         )
         val newBalance = transactionRepo.getAccountBalance(accountId)
         accountRepo.updateBalance(accountId, newBalance)
+
+        if (state.isRecurring && state.isExpense) {
+            val freq       = state.frequency
+            val now        = System.currentTimeMillis()
+            val nextDate   = nextFutureOccurrence(now, freq)
+            val name       = state.note.ifBlank { "Expense" }
+            val existing   = subscriptionRepo.getByMerchant(name)
+            if (existing == null) {
+                subscriptionRepo.upsert(
+                    DetectedSubscription(
+                        merchantName     = name,
+                        estimatedAmount  = kotlin.math.abs(cents),
+                        frequency        = freq,
+                        nextExpectedDate = nextDate,
+                        lastSeenDate     = now,
+                        occurrenceCount  = 1,
+                        isConfirmed      = true
+                    )
+                )
+            }
+        }
+
         _uiState.value = AddUiState(saved = true)
     }
 

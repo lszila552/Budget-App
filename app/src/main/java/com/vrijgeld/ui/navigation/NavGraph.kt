@@ -25,6 +25,7 @@ import androidx.navigation.navArgument
 import com.vrijgeld.data.repository.TransactionRepository
 import com.vrijgeld.ui.add.AddTransactionScreen
 import com.vrijgeld.ui.add.ReviewQueueScreen
+import com.vrijgeld.ui.budget.AddEditSubscriptionScreen
 import com.vrijgeld.ui.budget.AllocationWorkflowScreen
 import com.vrijgeld.ui.budget.BudgetScreen
 import com.vrijgeld.ui.budget.CategoryDetailScreen
@@ -51,6 +52,10 @@ sealed class Screen(val route: String) {
     object WeeklyReview   : Screen("weekly_review")
     object CategoryDetail : Screen("category_detail/{categoryId}") {
         fun createRoute(id: Long) = "category_detail/$id"
+    }
+    object AddSubscription : Screen("add_subscription?subscriptionId={subscriptionId}") {
+        fun createRoute(id: Long? = null) =
+            if (id != null) "add_subscription?subscriptionId=$id" else "add_subscription"
     }
 }
 
@@ -90,6 +95,13 @@ fun NavGraph() {
                 val catId = backStack.arguments?.getLong("categoryId") ?: return@composable
                 CategoryDetailScreen(navController, catId)
             }
+            composable(
+                route     = Screen.AddSubscription.route,
+                arguments = listOf(navArgument("subscriptionId") {
+                    type         = NavType.LongType
+                    defaultValue = -1L
+                })
+            ) { AddEditSubscriptionScreen(navController) }
         }
     }
 }
