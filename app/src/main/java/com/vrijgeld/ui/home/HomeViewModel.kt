@@ -9,12 +9,12 @@ import com.vrijgeld.data.repository.TransactionRepository
 import com.vrijgeld.domain.FIXED_CATEGORY_NAMES
 import com.vrijgeld.domain.SafeToSpendCalculator
 import com.vrijgeld.domain.SavingsRateCalculator
+import com.vrijgeld.domain.currentBudgetPeriod
 import com.vrijgeld.ui.components.CategoryRingData
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
-import java.util.Calendar
 import javax.inject.Inject
 
 data class StsBreakdown(
@@ -51,10 +51,10 @@ class HomeViewModel @Inject constructor(
     init { load() }
 
     private fun load() = viewModelScope.launch {
-        val cal         = Calendar.getInstance()
-        val yearMonth   = "%04d-%02d".format(cal.get(Calendar.YEAR), cal.get(Calendar.MONTH) + 1)
-        val dayOfMonth  = cal.get(Calendar.DAY_OF_MONTH)
-        val daysInMonth = cal.getActualMaximum(Calendar.DAY_OF_MONTH)
+        val period      = currentBudgetPeriod()
+        val yearMonth   = period.yearMonth
+        val dayOfMonth  = period.dayOfPeriod
+        val daysInMonth = period.daysInPeriod
 
         val income     = settingsRepo.getMonthlyIncome()
         val targetRate = settingsRepo.getTargetSavingsRate() / 100f
@@ -75,7 +75,7 @@ class HomeViewModel @Inject constructor(
         val savingsContributions  = savingsCats.sumOf { it.monthlyBudget ?: 0L }
         val setAsideContributions = sinkingContributions + savingsContributions
 
-        transactionRepo.getForMonth(yearMonth).collect { transactions ->
+        transactionRepo.getByDateRange(period.startMs, period.endMs).collect { transactions ->
             val expenses    = transactions.filter { it.amount < 0 }
             val totalIncome = transactions.filter { it.amount > 0 }.sumOf { it.amount }
                 .let { if (it > 0L) it else income }

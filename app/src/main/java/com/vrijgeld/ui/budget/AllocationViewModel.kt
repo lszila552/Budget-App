@@ -7,11 +7,12 @@ import com.vrijgeld.data.model.MonthlyAllocation
 import com.vrijgeld.data.repository.BudgetRepository
 import com.vrijgeld.data.repository.SettingsRepository
 import com.vrijgeld.data.repository.TransactionRepository
+import com.vrijgeld.domain.currentBudgetPeriod
+import com.vrijgeld.domain.previousBudgetPeriod
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
-import java.util.Calendar
 import javax.inject.Inject
 
 data class AllocationDraft(
@@ -46,15 +47,15 @@ class AllocationViewModel @Inject constructor(
     private val _state = MutableStateFlow(AllocationWorkflowState())
     val state = _state.asStateFlow()
 
-    private val cal       = Calendar.getInstance()
-    private val yearMonth = "%04d-%02d".format(cal.get(Calendar.YEAR), cal.get(Calendar.MONTH) + 1)
-    private val prevCal   = Calendar.getInstance().also { it.add(Calendar.MONTH, -1) }
-    private val lastMonth = "%04d-%02d".format(prevCal.get(Calendar.YEAR), prevCal.get(Calendar.MONTH) + 1)
+    private val period    = currentBudgetPeriod()
+    private val yearMonth = period.yearMonth
+    private val lastPeriod = previousBudgetPeriod(period)
+    private val lastMonth  = lastPeriod.yearMonth
 
     init { load() }
 
     private fun load() = viewModelScope.launch {
-        val txs      = transactionRepo.getForMonthOnce(yearMonth)
+        val txs      = transactionRepo.getByDateRangeOnce(period.startMs, period.endMs)
         val holding  = settingsRepo.getVakantiegeldHoldingCents()
 
         val rawIncome  = txs.filter { it.amount > 0 }.sumOf { it.amount }

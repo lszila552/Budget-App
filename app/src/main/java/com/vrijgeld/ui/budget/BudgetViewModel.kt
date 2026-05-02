@@ -13,15 +13,15 @@ import com.vrijgeld.domain.EnvelopeState
 import com.vrijgeld.domain.SpendingInsight
 import com.vrijgeld.domain.SpendingInsightsEngine
 import com.vrijgeld.domain.annualCost
+import com.vrijgeld.domain.currentBudgetPeriod
 import com.vrijgeld.domain.monthlyCost
 import com.vrijgeld.domain.nextFutureOccurrence
-import com.vrijgeld.domain.previousYearMonths
+import com.vrijgeld.domain.previousBudgetPeriod
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
-import java.util.Calendar
 import javax.inject.Inject
 
 data class BudgetUiState(
@@ -57,9 +57,9 @@ class BudgetViewModel @Inject constructor(
     private val _uiState = MutableStateFlow(BudgetUiState())
     val uiState = _uiState.asStateFlow()
 
-    private val cal       = Calendar.getInstance()
-    val yearMonth: String = "%04d-%02d".format(cal.get(Calendar.YEAR), cal.get(Calendar.MONTH) + 1)
-    private val lastYearMonth = previousYearMonths(yearMonth, 1).first()
+    private val period        = currentBudgetPeriod()
+    val yearMonth: String     = period.yearMonth
+    private val lastPeriod    = previousBudgetPeriod(period)
 
     fun confirm(id: Long) = viewModelScope.launch { subscriptionRepo.confirm(id) }
     fun dismiss(id: Long) = viewModelScope.launch { subscriptionRepo.dismiss(id) }
@@ -78,7 +78,7 @@ class BudgetViewModel @Inject constructor(
     init {
         viewModelScope.launch {
             combine(
-                transactionRepo.getForMonth(yearMonth),
+                transactionRepo.getByDateRange(period.startMs, period.endMs),
                 budgetRepo.getAllocationsForMonth(yearMonth),
                 budgetRepo.getExpenseCategories()
             ) { txs, allocations, cats ->
@@ -115,7 +115,7 @@ class BudgetViewModel @Inject constructor(
 
         // Last-month spending + spending insights
         viewModelScope.launch {
-            val lastMonthTxs = transactionRepo.getForMonthOnce(lastYearMonth)
+            val lastMonthTxs = transactionRepo.getByDateRangeOnce(lastPeriod.startMs, lastPeriod.endMs)
             val lastMonthSpent = lastMonthTxs.filter { it.amount < 0 && it.categoryId != null }
                 .groupBy { it.categoryId!! }
                 .mapValues { (_, ts) -> ts.sumOf { -it.amount } }
