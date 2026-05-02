@@ -86,9 +86,8 @@ class BudgetViewModel @Inject constructor(
                     .groupBy { it.categoryId!! }
                     .mapValues { (_, ts) -> ts.sumOf { -it.amount } }
 
-                val totalIncome = txs.filter { it.amount > 0 }.sumOf { it.amount }
-                    .let { if (it > 0L) it else settingsRepo.getMonthlyIncome() }
-                val holding     = settingsRepo.getVakantiegeldHoldingCents()
+                val totalIncome     = settingsRepo.getMonthlyIncome()
+                val holding         = settingsRepo.getVakantiegeldHoldingCents()
                 val effectiveIncome = totalIncome - holding
 
                 val regular  = cats.filter { !it.isSinkingFund }

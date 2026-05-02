@@ -6,7 +6,6 @@ import com.vrijgeld.data.model.Category
 import com.vrijgeld.data.model.MonthlyAllocation
 import com.vrijgeld.data.repository.BudgetRepository
 import com.vrijgeld.data.repository.SettingsRepository
-import com.vrijgeld.data.repository.TransactionRepository
 import com.vrijgeld.domain.currentBudgetPeriod
 import com.vrijgeld.domain.previousBudgetPeriod
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -40,7 +39,6 @@ data class AllocationWorkflowState(
 @HiltViewModel
 class AllocationViewModel @Inject constructor(
     private val budgetRepo: BudgetRepository,
-    private val transactionRepo: TransactionRepository,
     private val settingsRepo: SettingsRepository,
 ) : ViewModel() {
 
@@ -55,12 +53,8 @@ class AllocationViewModel @Inject constructor(
     init { load() }
 
     private fun load() = viewModelScope.launch {
-        val txs      = transactionRepo.getByDateRangeOnce(period.startMs, period.endMs)
-        val holding  = settingsRepo.getVakantiegeldHoldingCents()
-
-        val rawIncome  = txs.filter { it.amount > 0 }.sumOf { it.amount }
-        val settingsIncome = settingsRepo.getMonthlyIncome()
-        val totalIncome = (if (rawIncome > 0L) rawIncome else settingsIncome) - holding
+        val holding      = settingsRepo.getVakantiegeldHoldingCents()
+        val totalIncome  = settingsRepo.getMonthlyIncome() - holding
 
         val expenseCats = budgetRepo.getExpenseCategoriesOnce()
         val savingsCats = budgetRepo.getSavingsCategoriesOnce()

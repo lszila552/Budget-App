@@ -77,8 +77,7 @@ class HomeViewModel @Inject constructor(
 
         transactionRepo.getByDateRange(period.startMs, period.endMs).collect { transactions ->
             val expenses    = transactions.filter { it.amount < 0 }
-            val totalIncome = transactions.filter { it.amount > 0 }.sumOf { it.amount }
-                .let { if (it > 0L) it else income }
+            val totalIncome = income
 
             val fixedBudgets = fixedCats.associate { it.id to (it.monthlyBudget ?: 0L) }
             val fixedSpent   = fixedCats.associate { cat ->
