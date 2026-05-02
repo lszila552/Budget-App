@@ -33,7 +33,8 @@ interface TransactionDao {
 
     @Query("""
         SELECT COUNT(*) FROM transactions
-        WHERE categoryId IS NULL AND importSource IS NOT NULL AND importSource != 'MANUAL'
+        WHERE categoryId IS NULL AND isReviewed = 0
+          AND importSource IS NOT NULL AND importSource != 'MANUAL'
     """)
     fun countUncategorizedImported(): Flow<Int>
 
@@ -47,7 +48,8 @@ interface TransactionDao {
 
     @Query("""
         SELECT * FROM transactions
-        WHERE categoryId IS NULL AND importSource IS NOT NULL AND importSource != 'MANUAL'
+        WHERE categoryId IS NULL AND isReviewed = 0
+          AND importSource IS NOT NULL AND importSource != 'MANUAL'
         ORDER BY date DESC
     """)
     fun getUncategorizedImported(): Flow<List<Transaction>>
