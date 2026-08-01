@@ -9,14 +9,17 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.StrokeJoin
+import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.unit.dp
+import com.odyssey.game.data.CharacterProp
 import com.odyssey.game.ui.theme.Bronze
 
-// A simple silhouette bust (no portrait art available), tinted per-character, like a state seal.
+// A simple silhouette bust with a small corner emblem standing in for a character's prop.
 @Composable
 fun PortraitBust(
     accent: Color,
+    prop: CharacterProp = CharacterProp.NONE,
     modifier: Modifier = Modifier.size(72.dp),
 ) {
     Canvas(modifier = modifier) {
@@ -47,5 +50,58 @@ fun PortraitBust(
             color = accent,
             style = Stroke(width = headR * 0.9f, cap = StrokeCap.Round, join = StrokeJoin.Round)
         )
+
+        drawProp(prop, w, h)
+    }
+}
+
+private fun DrawScope.drawProp(prop: CharacterProp, w: Float, h: Float) {
+    val ex = w * 0.86f
+    val ey = h * 0.86f
+    val s = w * 0.16f
+    when (prop) {
+        CharacterProp.NONE -> Unit
+        CharacterProp.LOOM -> {
+            val path = Path().apply {
+                moveTo(ex - s, ey - s); lineTo(ex - s, ey + s)
+                moveTo(ex, ey - s); lineTo(ex, ey + s)
+                moveTo(ex + s, ey - s); lineTo(ex + s, ey + s)
+                moveTo(ex - s, ey - s); lineTo(ex + s, ey - s)
+            }
+            drawPath(path, color = Bronze, style = Stroke(width = 1.6f))
+        }
+        CharacterProp.SPEAR -> {
+            drawLine(color = Bronze, start = Offset(ex - s, ey + s), end = Offset(ex + s, ey - s), strokeWidth = 2.2f)
+            val tip = Path().apply {
+                moveTo(ex + s, ey - s)
+                lineTo(ex + s * 0.6f, ey - s * 0.4f)
+                lineTo(ex + s * 1.1f, ey - s * 0.6f)
+                close()
+            }
+            drawPath(tip, color = Bronze)
+        }
+        CharacterProp.CROOK -> {
+            val path = Path().apply {
+                moveTo(ex, ey + s)
+                lineTo(ex, ey - s * 0.4f)
+                quadraticBezierTo(ex, ey - s, ex - s * 0.7f, ey - s * 0.7f)
+                quadraticBezierTo(ex - s * 1.3f, ey - s * 0.4f, ex - s * 0.7f, ey - s * 0.1f)
+            }
+            drawPath(path, color = Bronze, style = Stroke(width = 2f, cap = StrokeCap.Round))
+        }
+        CharacterProp.OWL -> {
+            drawCircle(color = Bronze, radius = s * 0.7f, center = Offset(ex, ey))
+            drawCircle(color = Color.Black, radius = s * 0.18f, center = Offset(ex - s * 0.28f, ey - s * 0.1f))
+            drawCircle(color = Color.Black, radius = s * 0.18f, center = Offset(ex + s * 0.28f, ey - s * 0.1f))
+            val ears = Path().apply {
+                moveTo(ex - s * 0.5f, ey - s * 0.6f); lineTo(ex - s * 0.2f, ey - s); lineTo(ex - s * 0.1f, ey - s * 0.5f)
+                moveTo(ex + s * 0.5f, ey - s * 0.6f); lineTo(ex + s * 0.2f, ey - s); lineTo(ex + s * 0.1f, ey - s * 0.5f)
+            }
+            drawPath(ears, color = Bronze)
+        }
+        CharacterProp.RAISED_ARM -> {
+            drawLine(color = Bronze, start = Offset(ex, ey + s), end = Offset(ex, ey - s), strokeWidth = 3f, cap = StrokeCap.Round)
+            drawCircle(color = Bronze, radius = s * 0.32f, center = Offset(ex, ey - s))
+        }
     }
 }

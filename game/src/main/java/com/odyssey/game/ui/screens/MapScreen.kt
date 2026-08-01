@@ -15,21 +15,25 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.odyssey.game.data.SceneType
 import com.odyssey.game.data.Stop
 import com.odyssey.game.state.Act
 import com.odyssey.game.state.LogEntry
 import com.odyssey.game.ui.components.CrownGlyph
 import com.odyssey.game.ui.components.FormalButton
 import com.odyssey.game.ui.components.ResourceHud
+import com.odyssey.game.ui.components.SceneBanner
 import com.odyssey.game.ui.components.ShipGlyph
 import com.odyssey.game.ui.components.formalPanel
 import com.odyssey.game.ui.theme.Bronze
@@ -65,19 +69,36 @@ fun MapScreen(
 
         ResourceHud(act = act, crew = crew, supplies = supplies, favor = favor, stability = stability)
 
-        LazyRow(
+        Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(vertical = 16.dp),
-            horizontalArrangement = Arrangement.spacedBy(4.dp),
+                .padding(top = 14.dp)
         ) {
-            items(itinerary.size) { i ->
-                MapNodeRow(
-                    stop = itinerary[i],
-                    state = nodeState(i, stopIndex),
-                    isCouncil = i >= act1Size,
-                    showConnector = i != itinerary.lastIndex
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(112.dp)
+                    .clip(RoundedCornerShape(4.dp))
+                    .formalPanel(cornerRadius = 4.dp)
+            ) {
+                SceneBanner(
+                    type = if (act == Act.VOYAGE) SceneType.OPEN_SEA else SceneType.PALACE_HALL,
+                    modifier = Modifier.fillMaxSize()
                 )
+            }
+            LazyRow(
+                modifier = Modifier.fillMaxWidth().height(112.dp).padding(horizontal = 8.dp),
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                verticalAlignment = Alignment.Bottom,
+            ) {
+                items(itinerary.size) { i ->
+                    MapNodeRow(
+                        stop = itinerary[i],
+                        state = nodeState(i, stopIndex),
+                        isCouncil = i >= act1Size,
+                        showConnector = i != itinerary.lastIndex
+                    )
+                }
             }
         }
 
@@ -166,6 +187,16 @@ private fun MapNodeRow(stop: Stop, state: NodeState, isCouncil: Boolean, showCon
                 if (state == NodeState.CURRENT) {
                     if (isCouncil) CrownGlyph(modifier = Modifier.size(16.dp), color = Obsidian)
                     else ShipGlyph(modifier = Modifier.size(16.dp), color = Obsidian)
+                }
+            }
+            if (!isCouncil) {
+                Canvas(modifier = Modifier.width(30.dp).height(7.dp)) {
+                    val mound = androidx.compose.ui.graphics.Path().apply {
+                        moveTo(size.width * 0.1f, size.height)
+                        quadraticBezierTo(size.width * 0.5f, 0f, size.width * 0.9f, size.height)
+                        close()
+                    }
+                    drawPath(mound, color = fill.copy(alpha = 0.7f))
                 }
             }
             Text(

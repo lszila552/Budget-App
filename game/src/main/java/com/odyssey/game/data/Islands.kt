@@ -5,6 +5,7 @@ val ODYSSEY_ITINERARY: List<Stop> = listOf(
 
     Stop(
         id = "troy",
+        scene = SceneType.BURNING_CITY,
         title = "Troy's Shore",
         subtitle = "The war is over",
         narrative = "Ten years of war end in ash and smoke. Troy's towers fall behind you, and your " +
@@ -22,6 +23,7 @@ val ODYSSEY_ITINERARY: List<Stop> = listOf(
 
     Stop(
         id = "ciconians",
+        scene = SceneType.COASTAL_RAID,
         title = "The Ciconians",
         subtitle = "Ismarus",
         narrative = "You make landfall at Ismarus, city of the Ciconians, allies of Troy. Your men eye " +
@@ -54,6 +56,7 @@ val ODYSSEY_ITINERARY: List<Stop> = listOf(
 
     Stop(
         id = "interlude_1",
+        scene = SceneType.NIGHT_VISION,
         title = "Word from Ithaca",
         subtitle = "The suitors gather",
         narrative = "A gull-grey dream visits you at sea: in the halls of Ithaca, suitors have begun to " +
@@ -86,6 +89,7 @@ val ODYSSEY_ITINERARY: List<Stop> = listOf(
 
     Stop(
         id = "lotus_eaters",
+        scene = SceneType.TROPICAL_SHORE,
         title = "The Lotus-Eaters",
         subtitle = "A shore of sweet forgetting",
         narrative = "On a soft, sun-drowned coast, a gentle people offer your scouts the honeyed fruit of " +
@@ -119,6 +123,7 @@ val ODYSSEY_ITINERARY: List<Stop> = listOf(
 
     Stop(
         id = "cyclops",
+        scene = SceneType.CAVE_MOUTH,
         title = "The Cyclops's Cave",
         subtitle = "Polyphemus",
         narrative = "In a cave heaped with cheeses and lambs, the one-eyed giant Polyphemus traps your " +
@@ -157,6 +162,7 @@ val ODYSSEY_ITINERARY: List<Stop> = listOf(
 
     Stop(
         id = "aeolia",
+        scene = SceneType.WINDY_ISLE,
         title = "Aeolia",
         subtitle = "The bag of winds",
         narrative = "Aeolus, keeper of the winds, gifts you a leather bag holding every contrary gust, so " +
@@ -191,6 +197,7 @@ val ODYSSEY_ITINERARY: List<Stop> = listOf(
 
     Stop(
         id = "laestrygonians",
+        scene = SceneType.CLIFF_HARBOR,
         title = "The Laestrygonians",
         subtitle = "A harbor of giants",
         narrative = "In a narrow, cliff-walled harbor, giant cannibals hurl boulders down onto your fleet, " +
@@ -223,6 +230,7 @@ val ODYSSEY_ITINERARY: List<Stop> = listOf(
 
     Stop(
         id = "interlude_2",
+        scene = SceneType.NIGHT_VISION,
         title = "Word from Ithaca",
         subtitle = "The suitors grow bold",
         narrative = "The suitors feast nightly in your hall now, slaughtering your cattle, drinking your " +
@@ -258,6 +266,7 @@ val ODYSSEY_ITINERARY: List<Stop> = listOf(
 
     Stop(
         id = "circe",
+        scene = SceneType.ENCHANTED_HALL,
         title = "Circe's Aeaea",
         subtitle = "The sorceress's hall",
         narrative = "The sorceress Circe turns half your crew to swine with a single cup. The rest look to " +
@@ -291,6 +300,7 @@ val ODYSSEY_ITINERARY: List<Stop> = listOf(
 
     Stop(
         id = "underworld",
+        scene = SceneType.UNDERWORLD,
         title = "The Underworld",
         subtitle = "The counsel of the dead",
         narrative = "At Circe's counsel, you sail to the edge of the world and pour offerings of blood " +
@@ -322,6 +332,7 @@ val ODYSSEY_ITINERARY: List<Stop> = listOf(
 
     Stop(
         id = "sirens",
+        scene = SceneType.ROCKY_SIRENS,
         title = "The Sirens",
         subtitle = "A song worth dying for",
         narrative = "Their song promises perfect knowledge, perfect memory — and death on the rocks below " +
@@ -355,6 +366,7 @@ val ODYSSEY_ITINERARY: List<Stop> = listOf(
 
     Stop(
         id = "scylla_charybdis",
+        scene = SceneType.WHIRLPOOL,
         title = "Scylla and Charybdis",
         subtitle = "A strait with no safe side",
         narrative = "A strait so narrow you must choose: the six-headed monster Scylla on one cliff, or the " +
@@ -388,6 +400,7 @@ val ODYSSEY_ITINERARY: List<Stop> = listOf(
 
     Stop(
         id = "interlude_3",
+        scene = SceneType.NIGHT_VISION,
         title = "Word from Ithaca",
         subtitle = "The shroud unravels",
         narrative = "Antinous, boldest of the suitors, now speaks openly of killing Telemachus before he " +
@@ -419,6 +432,7 @@ val ODYSSEY_ITINERARY: List<Stop> = listOf(
 
     Stop(
         id = "thrinacia",
+        scene = SceneType.SACRED_PASTURE,
         title = "Thrinacia",
         subtitle = "The Cattle of the Sun",
         narrative = "Despite every warning, hunger drives your starving crew onto the island of Helios, " +
@@ -452,6 +466,7 @@ val ODYSSEY_ITINERARY: List<Stop> = listOf(
 
     Stop(
         id = "ogygia",
+        scene = SceneType.ISLAND_GROTTO,
         title = "Ogygia",
         subtitle = "Calypso's island",
         narrative = "Shipwrecked and alone, you wash ashore on Calypso's island. The nymph offers you " +
@@ -481,6 +496,7 @@ val ODYSSEY_ITINERARY: List<Stop> = listOf(
 
     Stop(
         id = "phaeacia",
+        scene = SceneType.HARBOR_CITY,
         title = "Phaeacia",
         subtitle = "The last friendly shore",
         narrative = "Storm-wrecked again and washed up naked on a foreign shore, you are found by " +
@@ -511,6 +527,7 @@ val ODYSSEY_ITINERARY: List<Stop> = listOf(
 
     Stop(
         id = "ithaca_finale",
+        scene = SceneType.PALACE_HALL,
         title = "Ithaca",
         subtitle = "The hall of the suitors",
         narrative = "After twenty years, your ship's keel finally scrapes Ithaca's own sand. In your hall, " +

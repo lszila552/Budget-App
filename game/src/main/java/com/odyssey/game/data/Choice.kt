@@ -27,6 +27,7 @@ data class Stop(
     val erosion: Int,
     val isInterlude: Boolean = false,
     val speaker: Character? = null,
+    val scene: SceneType = SceneType.OPEN_SEA,
     val choices: List<Choice>,
 )
 

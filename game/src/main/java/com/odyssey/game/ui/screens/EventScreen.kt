@@ -6,14 +6,17 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.unit.dp
 import com.odyssey.game.data.Choice
@@ -23,6 +26,7 @@ import com.odyssey.game.ui.components.FormalChoiceButton
 import com.odyssey.game.ui.components.OrnateDivider
 import com.odyssey.game.ui.components.PortraitBust
 import com.odyssey.game.ui.components.ResourceHud
+import com.odyssey.game.ui.components.SceneBanner
 import com.odyssey.game.ui.components.formalPanel
 import com.odyssey.game.ui.theme.Bronze
 import com.odyssey.game.ui.theme.TextPrimary
@@ -46,13 +50,24 @@ fun EventScreen(
     ) {
         ResourceHud(act = act, crew = crew, supplies = supplies, favor = favor, stability = stability)
 
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(150.dp)
+                .padding(top = 14.dp)
+                .clip(RoundedCornerShape(4.dp))
+                .formalPanel(cornerRadius = 4.dp)
+        ) {
+            SceneBanner(type = stop.scene, modifier = Modifier.fillMaxSize())
+        }
+
         val speaker = stop.speaker
         if (speaker != null) {
             Row(
-                modifier = Modifier.padding(top = 18.dp),
+                modifier = Modifier.padding(top = 14.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                PortraitBust(accent = speaker.accent)
+                PortraitBust(accent = speaker.accent, prop = speaker.prop)
                 Column(modifier = Modifier.padding(start = 14.dp)) {
                     Text(
                         text = speaker.name,

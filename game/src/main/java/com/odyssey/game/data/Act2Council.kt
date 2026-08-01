@@ -5,6 +5,7 @@ val ACT2_ITINERARY: List<Stop> = listOf(
 
     Stop(
         id = "ithaca_dawn",
+        scene = SceneType.PALACE_HALL,
         title = "The Morning After",
         subtitle = "Ithaca, the hall",
         narrative = "The suitors lie dead in the hall. Their blood is still being scrubbed from the " +
@@ -24,6 +25,7 @@ val ACT2_ITINERARY: List<Stop> = listOf(
 
     Stop(
         id = "council_of_elders",
+        scene = SceneType.ASSEMBLY,
         title = "Council of Elders",
         subtitle = "The free men of Ithaca gather",
         narrative = "The town elders and free men of Ithaca gather at your summons, uneasy. A hundred " +
@@ -57,6 +59,7 @@ val ACT2_ITINERARY: List<Stop> = listOf(
 
     Stop(
         id = "penelope_counsel",
+        scene = SceneType.PALACE_INTERIOR,
         title = "The Queen's Counsel",
         subtitle = "Twenty years, and a kingdom to run",
         narrative = "In your chambers, at last alone with your wife after twenty years, the conversation " +
@@ -91,6 +94,7 @@ val ACT2_ITINERARY: List<Stop> = listOf(
 
     Stop(
         id = "telemachus_role",
+        scene = SceneType.PALACE_INTERIOR,
         title = "A Son Grown",
         subtitle = "What Telemachus is owed",
         narrative = "Your son found his courage while you were still lost at sea — sailing to Pylos and " +
@@ -124,6 +128,7 @@ val ACT2_ITINERARY: List<Stop> = listOf(
 
     Stop(
         id = "the_disloyal",
+        scene = SceneType.PALACE_INTERIOR,
         title = "A Harder Judgment",
         subtitle = "What loyalty is owed, and to whom",
         narrative = "Eumaeus, the swineherd who never once doubted you, brings a harder matter to your " +
@@ -163,6 +168,7 @@ val ACT2_ITINERARY: List<Stop> = listOf(
 
     Stop(
         id = "mentor_warning",
+        scene = SceneType.RAMPARTS_NIGHT,
         title = "A Warning on the Ramparts",
         subtitle = "Grey eyes in the torchlight",
         narrative = "Your old friend Mentor finds you alone on the ramparts. There is something not " +
@@ -198,6 +204,7 @@ val ACT2_ITINERARY: List<Stop> = listOf(
 
     Stop(
         id = "the_reckoning",
+        scene = SceneType.GATES_BATTLE,
         title = "The Reckoning",
         subtitle = "Eupeithes at the gates",
         narrative = "Eupeithes leads the armed fathers of the dead to your gates at dawn, grief turned " +
