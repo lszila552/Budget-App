@@ -22,7 +22,7 @@ private fun smoothClosedPath(points: List<Offset>): Path {
         val current = points[i]
         val next = points[(i + 1) % n]
         val m = mid(current, next)
-        path.quadraticTo(current.x, current.y, m.x, m.y)
+        path.quadraticBezierTo(current.x, current.y, m.x, m.y)
     }
     path.close()
     return path
