@@ -1,19 +1,14 @@
 package com.odyssey.game.ui.screens
 
-import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
@@ -22,23 +17,15 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import com.odyssey.game.data.SceneType
 import com.odyssey.game.data.Stop
 import com.odyssey.game.state.Act
 import com.odyssey.game.state.LogEntry
-import com.odyssey.game.ui.components.CrownGlyph
 import com.odyssey.game.ui.components.FormalButton
 import com.odyssey.game.ui.components.ResourceHud
-import com.odyssey.game.ui.components.SceneBanner
-import com.odyssey.game.ui.components.ShipGlyph
+import com.odyssey.game.ui.components.WorldMapBoard
 import com.odyssey.game.ui.components.formalPanel
 import com.odyssey.game.ui.theme.Bronze
-import com.odyssey.game.ui.theme.Obsidian
-import com.odyssey.game.ui.theme.StoneLight
 import com.odyssey.game.ui.theme.TextPrimary
 import com.odyssey.game.ui.theme.TextSecondary
 import com.odyssey.game.ui.theme.TyrianPurple
@@ -69,43 +56,24 @@ fun MapScreen(
 
         ResourceHud(act = act, crew = crew, supplies = supplies, favor = favor, stability = stability)
 
-        Box(
+        WorldMapBoard(
+            itinerary = itinerary,
+            act1Size = act1Size,
+            stopIndex = stopIndex,
+            act = act,
             modifier = Modifier
                 .fillMaxWidth()
+                .weight(1f)
                 .padding(top = 14.dp)
-        ) {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(112.dp)
-                    .clip(RoundedCornerShape(4.dp))
-                    .formalPanel(cornerRadius = 4.dp)
-            ) {
-                SceneBanner(
-                    type = if (act == Act.VOYAGE) SceneType.OPEN_SEA else SceneType.PALACE_HALL,
-                    modifier = Modifier.fillMaxSize()
-                )
-            }
-            LazyRow(
-                modifier = Modifier.fillMaxWidth().height(112.dp).padding(horizontal = 8.dp),
-                horizontalArrangement = Arrangement.spacedBy(4.dp),
-                verticalAlignment = Alignment.Bottom,
-            ) {
-                items(itinerary.size) { i ->
-                    MapNodeRow(
-                        stop = itinerary[i],
-                        state = nodeState(i, stopIndex),
-                        isCouncil = i >= act1Size,
-                        showConnector = i != itinerary.lastIndex
-                    )
-                }
-            }
-        }
+                .clip(RoundedCornerShape(6.dp))
+                .formalPanel(cornerRadius = 6.dp)
+        )
 
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .weight(1f)
+                .height(140.dp)
+                .padding(top = 14.dp)
                 .formalPanel(cornerRadius = 4.dp)
                 .padding(14.dp)
         ) {
@@ -153,70 +121,5 @@ fun MapScreen(
                 .align(Alignment.CenterHorizontally)
                 .padding(top = 14.dp)
         )
-    }
-}
-
-private enum class NodeState { VISITED, CURRENT, UPCOMING }
-
-private fun nodeState(index: Int, currentIndex: Int): NodeState = when {
-    index < currentIndex -> NodeState.VISITED
-    index == currentIndex -> NodeState.CURRENT
-    else -> NodeState.UPCOMING
-}
-
-@Composable
-private fun MapNodeRow(stop: Stop, state: NodeState, isCouncil: Boolean, showConnector: Boolean) {
-    val fill = when (state) {
-        NodeState.VISITED -> if (isCouncil) TyrianPurple else Bronze
-        NodeState.CURRENT -> Bronze
-        NodeState.UPCOMING -> StoneLight
-    }
-    val textColor = if (state == NodeState.UPCOMING) TextSecondary.copy(alpha = 0.6f) else TextPrimary
-
-    Row(verticalAlignment = Alignment.CenterVertically) {
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            modifier = Modifier.width(64.dp)
-        ) {
-            Box(
-                modifier = Modifier
-                    .size(30.dp)
-                    .formalPanel(fill = fill, cornerRadius = 15.dp),
-                contentAlignment = Alignment.Center
-            ) {
-                if (state == NodeState.CURRENT) {
-                    if (isCouncil) CrownGlyph(modifier = Modifier.size(16.dp), color = Obsidian)
-                    else ShipGlyph(modifier = Modifier.size(16.dp), color = Obsidian)
-                }
-            }
-            if (!isCouncil) {
-                Canvas(modifier = Modifier.width(30.dp).height(7.dp)) {
-                    val mound = androidx.compose.ui.graphics.Path().apply {
-                        moveTo(size.width * 0.1f, size.height)
-                        quadraticBezierTo(size.width * 0.5f, 0f, size.width * 0.9f, size.height)
-                        close()
-                    }
-                    drawPath(mound, color = fill.copy(alpha = 0.7f))
-                }
-            }
-            Text(
-                text = stop.title,
-                style = MaterialTheme.typography.labelSmall,
-                color = textColor,
-                textAlign = TextAlign.Center,
-                maxLines = 2,
-                modifier = Modifier.padding(top = 4.dp)
-            )
-        }
-        if (showConnector) {
-            Canvas(modifier = Modifier.width(18.dp).height(4.dp)) {
-                drawLine(
-                    color = Color(0x55B08D3E),
-                    start = Offset(0f, size.height / 2f),
-                    end = Offset(size.width, size.height / 2f),
-                    strokeWidth = 3f
-                )
-            }
-        }
     }
 }
