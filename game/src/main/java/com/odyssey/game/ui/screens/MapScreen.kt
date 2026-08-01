@@ -25,21 +25,26 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.odyssey.game.data.Stop
+import com.odyssey.game.state.Act
 import com.odyssey.game.state.LogEntry
+import com.odyssey.game.ui.components.CrownGlyph
+import com.odyssey.game.ui.components.FormalButton
 import com.odyssey.game.ui.components.ResourceHud
 import com.odyssey.game.ui.components.ShipGlyph
-import com.odyssey.game.ui.components.SketchButton
-import com.odyssey.game.ui.components.sketchPanel
-import com.odyssey.game.ui.theme.AegeanBlue
-import com.odyssey.game.ui.theme.GoldOchre
-import com.odyssey.game.ui.theme.Ink
-import com.odyssey.game.ui.theme.ParchmentDark
-import com.odyssey.game.ui.theme.ParchmentPanel
+import com.odyssey.game.ui.components.formalPanel
+import com.odyssey.game.ui.theme.Bronze
+import com.odyssey.game.ui.theme.Obsidian
+import com.odyssey.game.ui.theme.StoneLight
+import com.odyssey.game.ui.theme.TextPrimary
+import com.odyssey.game.ui.theme.TextSecondary
+import com.odyssey.game.ui.theme.TyrianPurple
 
 @Composable
 fun MapScreen(
     itinerary: List<Stop>,
+    act1Size: Int,
     stopIndex: Int,
+    act: Act,
     crew: Int,
     supplies: Int,
     favor: Int,
@@ -51,13 +56,14 @@ fun MapScreen(
 
     Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
         Text(
-            text = "The Voyage — Leg ${stopIndex + 1} of ${itinerary.size}",
+            text = if (act == Act.VOYAGE) "The Voyage — Leg ${stopIndex + 1} of $act1Size"
+            else "The Reign — Day ${stopIndex - act1Size + 1} of ${itinerary.size - act1Size}",
             style = MaterialTheme.typography.headlineSmall,
-            color = Ink,
+            color = TextPrimary,
             modifier = Modifier.padding(bottom = 10.dp)
         )
 
-        ResourceHud(crew = crew, supplies = supplies, favor = favor, stability = stability)
+        ResourceHud(act = act, crew = crew, supplies = supplies, favor = favor, stability = stability)
 
         LazyRow(
             modifier = Modifier
@@ -66,7 +72,12 @@ fun MapScreen(
             horizontalArrangement = Arrangement.spacedBy(4.dp),
         ) {
             items(itinerary.size) { i ->
-                MapNodeRow(stop = itinerary[i], state = nodeState(i, stopIndex), showConnector = i != itinerary.lastIndex)
+                MapNodeRow(
+                    stop = itinerary[i],
+                    state = nodeState(i, stopIndex),
+                    isCouncil = i >= act1Size,
+                    showConnector = i != itinerary.lastIndex
+                )
             }
         }
 
@@ -74,21 +85,21 @@ fun MapScreen(
             modifier = Modifier
                 .fillMaxWidth()
                 .weight(1f)
-                .sketchPanel(fill = ParchmentPanel, cornerRadius = 14.dp, seed = 5002)
+                .formalPanel(cornerRadius = 4.dp)
                 .padding(14.dp)
         ) {
             Column {
                 Text(
-                    text = "Odysseus's Journal",
+                    text = "The Chronicle",
                     style = MaterialTheme.typography.titleLarge,
-                    color = Ink,
+                    color = TextPrimary,
                     modifier = Modifier.padding(bottom = 6.dp)
                 )
                 if (log.isEmpty()) {
                     Text(
                         text = "The voyage has not yet begun. Ahead lies ${currentStop.title} — ${currentStop.subtitle}.",
                         style = MaterialTheme.typography.bodyMedium,
-                        color = Ink,
+                        color = TextPrimary,
                     )
                 } else {
                     LazyColumn(
@@ -100,12 +111,12 @@ fun MapScreen(
                                 Text(
                                     text = "${entry.stopTitle} — ${entry.choiceLabel}",
                                     style = MaterialTheme.typography.titleMedium,
-                                    color = if (entry.fateStruck) GoldOchre else AegeanBlue,
+                                    color = if (entry.fateStruck) Bronze else TyrianPurple,
                                 )
                                 Text(
                                     text = entry.outcomeText,
                                     style = MaterialTheme.typography.bodyMedium,
-                                    color = Ink,
+                                    color = TextSecondary,
                                 )
                             }
                         }
@@ -114,8 +125,8 @@ fun MapScreen(
             }
         }
 
-        SketchButton(
-            label = if (stopIndex == itinerary.lastIndex) "Reach Ithaca's Shore" else "Continue the Voyage",
+        FormalButton(
+            label = if (stopIndex == itinerary.lastIndex) "Face the Reckoning" else "Continue",
             onClick = onContinueJourney,
             modifier = Modifier
                 .align(Alignment.CenterHorizontally)
@@ -133,13 +144,13 @@ private fun nodeState(index: Int, currentIndex: Int): NodeState = when {
 }
 
 @Composable
-private fun MapNodeRow(stop: Stop, state: NodeState, showConnector: Boolean) {
+private fun MapNodeRow(stop: Stop, state: NodeState, isCouncil: Boolean, showConnector: Boolean) {
     val fill = when (state) {
-        NodeState.VISITED -> AegeanBlue
-        NodeState.CURRENT -> GoldOchre
-        NodeState.UPCOMING -> ParchmentDark
+        NodeState.VISITED -> if (isCouncil) TyrianPurple else Bronze
+        NodeState.CURRENT -> Bronze
+        NodeState.UPCOMING -> StoneLight
     }
-    val textColor = if (state == NodeState.UPCOMING) Ink.copy(alpha = 0.5f) else Ink
+    val textColor = if (state == NodeState.UPCOMING) TextSecondary.copy(alpha = 0.6f) else TextPrimary
 
     Row(verticalAlignment = Alignment.CenterVertically) {
         Column(
@@ -149,11 +160,12 @@ private fun MapNodeRow(stop: Stop, state: NodeState, showConnector: Boolean) {
             Box(
                 modifier = Modifier
                     .size(30.dp)
-                    .sketchPanel(fill = fill, cornerRadius = 999.dp, seed = stop.id.hashCode()),
+                    .formalPanel(fill = fill, cornerRadius = 15.dp),
                 contentAlignment = Alignment.Center
             ) {
                 if (state == NodeState.CURRENT) {
-                    ShipGlyph(modifier = Modifier.size(16.dp), color = Ink)
+                    if (isCouncil) CrownGlyph(modifier = Modifier.size(16.dp), color = Obsidian)
+                    else ShipGlyph(modifier = Modifier.size(16.dp), color = Obsidian)
                 }
             }
             Text(
@@ -168,7 +180,7 @@ private fun MapNodeRow(stop: Stop, state: NodeState, showConnector: Boolean) {
         if (showConnector) {
             Canvas(modifier = Modifier.width(18.dp).height(4.dp)) {
                 drawLine(
-                    color = Color(0x552B2013),
+                    color = Color(0x55B08D3E),
                     start = Offset(0f, size.height / 2f),
                     end = Offset(size.width, size.height / 2f),
                     strokeWidth = 3f

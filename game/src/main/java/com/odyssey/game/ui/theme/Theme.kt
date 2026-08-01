@@ -1,25 +1,25 @@
 package com.odyssey.game.ui.theme
 
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.lightColorScheme
+import androidx.compose.material3.darkColorScheme
 import androidx.compose.runtime.Composable
 
-private val OdysseyColorScheme = lightColorScheme(
-    primary            = AegeanBlue,
-    onPrimary          = ParchmentPanel,
-    primaryContainer   = AegeanBlueLt,
-    onPrimaryContainer = Ink,
-    secondary          = GoldOchre,
-    onSecondary        = Ink,
-    background         = Parchment,
-    onBackground       = Ink,
-    surface            = ParchmentPanel,
-    onSurface          = Ink,
-    surfaceVariant     = ParchmentDark,
-    onSurfaceVariant   = InkFaded,
-    error              = WineRed,
-    onError            = ParchmentPanel,
-    outline            = Ink,
+private val OdysseyColorScheme = darkColorScheme(
+    primary            = Bronze,
+    onPrimary          = Obsidian,
+    primaryContainer   = StoneLight,
+    onPrimaryContainer = TextPrimary,
+    secondary          = TyrianPurple,
+    onSecondary        = TextPrimary,
+    background         = Obsidian,
+    onBackground       = TextPrimary,
+    surface            = StonePanel,
+    onSurface          = TextPrimary,
+    surfaceVariant     = StoneLight,
+    onSurfaceVariant   = TextSecondary,
+    error              = BloodRed,
+    onError            = TextPrimary,
+    outline            = Bronze,
 )
 
 @Composable

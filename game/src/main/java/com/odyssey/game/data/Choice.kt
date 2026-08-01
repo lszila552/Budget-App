@@ -18,7 +18,7 @@ data class Choice(
     val riskText: String = "",
 )
 
-/** One stop on the voyage, or a political interlude reporting on events back in Ithaca. */
+/** One stop on the voyage, a political interlude, or a council-chamber scene in Act 2. */
 data class Stop(
     val id: String,
     val title: String,
@@ -26,6 +26,7 @@ data class Stop(
     val narrative: String,
     val erosion: Int,
     val isInterlude: Boolean = false,
+    val speaker: Character? = null,
     val choices: List<Choice>,
 )
 

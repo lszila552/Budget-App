@@ -15,28 +15,29 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.odyssey.game.data.Ending
 import com.odyssey.game.data.EndingKind
-import com.odyssey.game.ui.components.PaperBackground
+import com.odyssey.game.state.Act
+import com.odyssey.game.ui.components.FormalButton
+import com.odyssey.game.ui.components.MarbleBackground
+import com.odyssey.game.ui.components.OrnateDivider
 import com.odyssey.game.ui.components.ResourceHud
-import com.odyssey.game.ui.components.SketchButton
-import com.odyssey.game.ui.components.WaveDivider
-import com.odyssey.game.ui.components.sketchPanel
-import com.odyssey.game.ui.theme.AegeanBlue
-import com.odyssey.game.ui.theme.Ink
-import com.odyssey.game.ui.theme.ParchmentPanel
-import com.odyssey.game.ui.theme.StabilityColor
+import com.odyssey.game.ui.components.formalPanel
+import com.odyssey.game.ui.theme.BloodRed
+import com.odyssey.game.ui.theme.TextPrimary
+import com.odyssey.game.ui.theme.TyrianPurple
 
 @Composable
 fun EndingScreen(
     ending: Ending,
+    act: Act,
     crew: Int,
     supplies: Int,
     favor: Int,
     stability: Int,
     onRestart: () -> Unit,
 ) {
-    val accent = if (ending.kind == EndingKind.VICTORY) AegeanBlue else StabilityColor
+    val accent = if (ending.kind == EndingKind.VICTORY) TyrianPurple else BloodRed
 
-    PaperBackground {
+    MarbleBackground {
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -46,9 +47,11 @@ fun EndingScreen(
         ) {
             Text(
                 text = when (ending.kind) {
-                    EndingKind.VICTORY -> "ITHACA RECLAIMED"
+                    EndingKind.VICTORY -> "THE SAGA CONCLUDES"
                     EndingKind.LOST_AT_SEA -> "THE VOYAGE ENDS"
                     EndingKind.THRONE_LOST -> "THE THRONE FALLS"
+                    EndingKind.OVERTHROWN -> "THE REIGN ENDS"
+                    EndingKind.CIVIL_WAR -> "ITHACA BURNS"
                 },
                 style = MaterialTheme.typography.headlineSmall,
                 color = accent,
@@ -57,34 +60,34 @@ fun EndingScreen(
             Text(
                 text = ending.title,
                 style = MaterialTheme.typography.displaySmall,
-                color = Ink,
+                color = TextPrimary,
                 textAlign = TextAlign.Center,
                 modifier = Modifier.padding(top = 4.dp, bottom = 8.dp)
             )
-            WaveDivider(modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp), color = accent)
+            OrnateDivider(modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp), color = accent)
 
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .sketchPanel(fill = ParchmentPanel, cornerRadius = 14.dp, seed = 9001)
+                    .formalPanel(cornerRadius = 4.dp)
                     .padding(16.dp)
             ) {
                 Text(
                     text = ending.body,
                     style = MaterialTheme.typography.bodyLarge,
-                    color = Ink,
+                    color = TextPrimary,
                 )
             }
 
             Text(
                 text = "The kingdom, as it stands:",
                 style = MaterialTheme.typography.titleMedium,
-                color = Ink,
+                color = TextPrimary,
                 modifier = Modifier.padding(top = 20.dp, bottom = 8.dp)
             )
-            ResourceHud(crew = crew, supplies = supplies, favor = favor, stability = stability)
+            ResourceHud(act = act, crew = crew, supplies = supplies, favor = favor, stability = stability)
 
-            SketchButton(
+            FormalButton(
                 label = "Sail Again",
                 onClick = onRestart,
                 modifier = Modifier.padding(top = 24.dp)
